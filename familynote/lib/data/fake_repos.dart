@@ -52,3 +52,38 @@ class FakeNoteRepository implements NoteRepository {
   @override
   Future<List<Note>> trash() async => _notes.values.where((n) => n.deletedAt != null).toList();
 }
+
+class FakeListRepository implements ListRepository {
+  final _lists = <ShoppingList>[];
+  final _items = <String, List<ShoppingItem>>{};
+  int _n = 0;
+
+  @override
+  Future<List<ShoppingList>> lists() async => List.of(_lists);
+
+  @override
+  Future<ShoppingList> createList(String name) async {
+    final l = ShoppingList(id: 'l${_n++}', name: name);
+    _lists.add(l);
+    _items[l.id] = [];
+    return l;
+  }
+
+  @override
+  Future<List<ShoppingItem>> items(String listId) async => List.of(_items[listId] ?? []);
+
+  @override
+  Future<ShoppingItem> addItem(String listId, String text) async {
+    final i = ShoppingItem(id: 'i${_n++}', text: text);
+    _items[listId]!.add(i);
+    return i;
+  }
+
+  @override
+  Future<void> setChecked(String itemId, bool checked) async {
+    for (final l in _items.values) {
+      final idx = l.indexWhere((i) => i.id == itemId);
+      if (idx >= 0) l[idx] = ShoppingItem(id: itemId, text: l[idx].text, checked: checked);
+    }
+  }
+}
