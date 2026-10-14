@@ -61,7 +61,6 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Nova nota'), findsOneWidget);
   });
-}
 
   testWidgets('missing config shows a Portuguese message', (t) async {
     await t.pumpWidget(const MissingConfigApp());
