@@ -17,15 +17,23 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
   String? workspaceId;
   final List<Member> _members;
   final invitations = <String>[];
+  final createdNames = <String>[];
+  Object? createError;
+  Object? currentError;
 
   @override
   String? get currentUserId => userId;
 
   @override
-  Future<String?> currentWorkspaceId() async => workspaceId;
+  Future<String?> currentWorkspaceId() async {
+    if (currentError != null) throw currentError!;
+    return workspaceId;
+  }
 
   @override
   Future<String> createWorkspace(String name) async {
+    if (createError != null) throw createError!;
+    createdNames.add(name);
     workspaceId = 'ws1';
     _members.add(Member(userId: userId, displayName: '', role: Role.admin));
     return workspaceId!;
@@ -40,7 +48,7 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
 
   @override
   Future<String> acceptInvitation(String token) async {
-    if (!invitations.contains(token)) throw Exception('invalid invitation');
+    if (!invitations.contains(token)) throw Exception('invalid or expired invitation');
     workspaceId = 'ws1';
     return workspaceId!;
   }

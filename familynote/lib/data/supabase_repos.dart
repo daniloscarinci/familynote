@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/models.dart';
 import '../domain/repositories.dart';
 import 'auth_repository.dart';
+import 'profile_repository.dart';
 import 'workspace_repository.dart';
 
 Note _note(Map<String, dynamic> r) => Note(
@@ -168,6 +169,9 @@ class SupabaseAuthRepository implements AuthRepository {
       _db.auth.verifyOTP(email: email, token: code, type: OtpType.email);
 
   @override
+  Future<void> signInAnonymously() => _db.auth.signInAnonymously();
+
+  @override
   Future<void> signOut() => _db.auth.signOut();
 }
 
@@ -204,9 +208,6 @@ class SupabaseWorkspaceRepository implements WorkspaceRepository {
   Future<String> acceptInvitation(String token) async =>
       (await _db.rpc('accept_invitation', params: {'p_token': token.trim()})) as String;
 
-  /// Profiles of other members are not readable under the current RLS
-  /// (profiles_self), so only the caller's own display name is filled in; the
-  /// UI falls back to a generic label for the rest.
   @override
   Future<List<Member>> members(String workspaceId) async {
     final rows = await _db
@@ -214,15 +215,37 @@ class SupabaseWorkspaceRepository implements WorkspaceRepository {
         .select('user_id, role')
         .eq('workspace_id', workspaceId)
         .eq('status', 'active');
-    final me = currentUserId!;
-    final mine = await _db.from('profiles').select('display_name').eq('id', me).maybeSingle();
-    final myName = (mine?['display_name'] as String?) ?? '';
+    final ids = rows.map<String>((r) => r['user_id'] as String).toList();
+    // Readable for people in the same family (policy profiles_family_read).
+    final profiles = ids.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await _db.from('profiles').select('id, display_name').inFilter('id', ids);
+    final names = {for (final p in profiles) p['id'] as String: (p['display_name'] as String?) ?? ''};
     return rows
         .map<Member>((r) => Member(
               userId: r['user_id'] as String,
-              displayName: r['user_id'] == me ? myName : '',
+              displayName: names[r['user_id']] ?? '',
               role: Role.values.byName(r['role'] as String),
             ))
         .toList();
+  }
+}
+
+class SupabaseProfileRepository implements ProfileRepository {
+  SupabaseProfileRepository(this._db);
+  final SupabaseClient _db;
+
+  String get _me => _db.auth.currentUser!.id;
+
+  @override
+  Future<String> displayName() async {
+    final r = await _db.from('profiles').select('display_name').eq('id', _me).maybeSingle();
+    return (r?['display_name'] as String?) ?? '';
+  }
+
+  @override
+  Future<void> setDisplayName(String name) async {
+    // Upsert in case the profile row is missing for an account that predates the signup trigger.
+    await _db.from('profiles').upsert({'id': _me, 'display_name': name.trim()});
   }
 }

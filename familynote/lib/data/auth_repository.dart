@@ -5,6 +5,8 @@ abstract class AuthRepository {
   Stream<bool> get signedIn;
   Future<void> sendCode(String email);
   Future<void> verifyCode(String email, String code);
+  /// Creates a real, individual account bound to this device (invite links).
+  Future<void> signInAnonymously();
   Future<void> signOut();
 }
 
@@ -34,6 +36,16 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> verifyCode(String email, String code) async {
     if (code != validCode) throw Exception('invalid code');
+    _set(true);
+  }
+
+  int anonymousSignIns = 0;
+  Object? anonymousError;
+
+  @override
+  Future<void> signInAnonymously() async {
+    if (anonymousError != null) throw anonymousError!;
+    anonymousSignIns++;
     _set(true);
   }
 

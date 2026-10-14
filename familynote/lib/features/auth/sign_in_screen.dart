@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/messages.dart';
 import '../../data/auth_repository.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -30,8 +31,8 @@ class _SignInScreenState extends State<SignInScreen> {
     });
     try {
       await action();
-    } catch (_) {
-      if (mounted) setState(() => _error = errorText);
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyMessage(e, fallback: errorText));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

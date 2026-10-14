@@ -1,14 +1,17 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app.dart';
 import 'app/providers.dart';
+import 'core/join_link.dart';
 import 'core/theme.dart';
 import 'data/supabase_repos.dart';
 
 const _url = String.fromEnvironment('SUPABASE_URL');
 const _anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+const _appUrl = String.fromEnvironment('APP_URL');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +31,11 @@ Future<void> main() async {
   runApp(ProviderScope(
     overrides: [
       authRepositoryProvider.overrideWithValue(SupabaseAuthRepository(db)),
+      profileRepositoryProvider.overrideWithValue(SupabaseProfileRepository(db)),
+      appUrlProvider.overrideWithValue(
+          resolveAppUrl(define: _appUrl, base: kIsWeb ? Uri.base : Uri())),
+      initialJoinTokenProvider
+          .overrideWithValue(kIsWeb ? JoinLinkParser.fromUri(Uri.base) : null),
       workspaceRepositoryProvider.overrideWithValue(SupabaseWorkspaceRepository(db)),
       noteRepositoryFactoryProvider
           .overrideWithValue((ws) => SupabaseNoteRepository(db, ws)),
