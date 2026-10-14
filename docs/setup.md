@@ -34,7 +34,7 @@ The mapping resets on reboot. Moving the project to a path without an apostrophe
    node --env-file=.env scripts/run.mjs test
    ```
 
-   Expect `# passed 40, failed 0`. Tests roll back and leave no data.
+   Expect `# passed 55, failed 0`. Tests roll back and leave no data.
 
 Never run the tests against a database holding real family data.
 
@@ -43,6 +43,12 @@ The app signs in with a code sent by email.
 1. Supabase dashboard → Authentication → Email Templates → **Magic Link**.
 2. Make sure the body contains `{{ .Token }}` (for example: `Seu código: {{ .Token }}`).
 3. The built-in mail sender is rate limited. For real use, configure custom SMTP (Authentication → SMTP Settings).
+
+## 3b. Anonymous sign-in (one-time Supabase setting, required for invite links)
+Relatives join by tapping a link; the app creates an individual account for them with Supabase anonymous sign-in.
+1. Supabase dashboard → Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins**.
+2. Before public use, protect it from bulk account creation: Authentication → Attack Protection → enable **CAPTCHA**, and review Authentication → Rate Limits (anonymous sign-ins per hour per IP).
+3. Anonymous accounts are tied to the browser storage of that device. If a relative clears browser data, the account is lost; create a new invite for them.
 
 ## 4. Run the app
 Get the **Project URL** and **anon (public) key** from Project Settings → API. Never use the `service_role` key in the app.
@@ -55,6 +61,18 @@ flutter run -d chrome ^
 ```
 
 (Use `\` instead of `^` outside Windows cmd.) Without the two values the app shows a Portuguese configuration message.
+
+### Invite links and `APP_URL`
+Invite links look like `<APP_URL>/#/join/<token>`. Set the address where the web app is hosted:
+
+```
+--dart-define=APP_URL=https://familia.exemplo.com
+```
+
+If `APP_URL` is not set, the web app uses the address it was opened from (fine for local testing, but links made on `localhost` only work on that computer).
+
+### Hosting requirement
+The link must open the app for the relative, so the web build (`flutter build web ...`, folder `build/web`) must be hosted at a stable HTTPS address (any static host). Pass the same `SUPABASE_*` and `APP_URL` defines when building. Relatives can then use "Add to home screen" on their phone. Native deep links are a later step.
 
 ## 5. Tests
 ```
