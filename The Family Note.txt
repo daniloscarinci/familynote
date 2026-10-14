@@ -1,0 +1,373 @@
+# MASTER DEVELOPMENT PROMPT — FAMILNOTE AI
+
+## 1. Project Vision
+
+Act as a senior full-stack software architect, mobile application developer, UX/UI designer, database engineer, and cybersecurity specialist.
+
+Design and develop **FamilyNote AI**, a simple, fast, secure, and intelligent family note-taking and organization application.
+
+The application must be easy enough for a non-technical user to operate immediately, while providing advanced capabilities for managing information, coordinating family activities, and planning the future.
+
+**Core principle:** Capture information in seconds, organize it automatically, share it safely, and turn important notes into useful actions.
+
+## 2. Target Platforms
+
+- Android smartphones and tablets.
+- iOS smartphones and tablets.
+- Optional web application for computers.
+- Responsive interface adapted to different screen sizes.
+- Consistent synchronization across all authorized devices.
+
+Prefer a maintainable cross-platform architecture, such as Flutter or React Native with TypeScript, combined with a reliable cloud database.
+
+Evaluate Firebase or Supabase according to the project's synchronization, authentication, security, and cost requirements. Choose one primary backend and avoid unnecessary architectural complexity.
+
+## 3. User Experience and Main Screen
+
+Create an exceptionally clean interface with:
+
+- A prominent “Quick Note” button.
+- A universal search field.
+- A visible list of recent notes.
+- Sections for Today, Upcoming, Shopping, Tasks, Family, and Long-Term Plans.
+- A notification center.
+- A profile and family-sharing settings area.
+
+The user must be able to create a basic note in no more than two actions after opening the application.
+
+Support text, checklists, voice dictation, optional images, attachments, and links.
+
+Automatically save changes and clearly indicate whether information is saved, pending synchronization, or available offline.
+
+## 4. Smart Note Organization
+
+Allow users to create notes manually or organize them using optional AI assistance.
+
+Each note may include:
+
+- Title and content.
+- Creation and modification dates.
+- Category and tags.
+- Priority level.
+- Responsible person.
+- Due date and reminders.
+- Related notes and attachments.
+- Sharing permissions.
+- Status: active, completed, archived, or deleted.
+
+Suggested categories:
+
+- Personal notes.
+- Family information.
+- Shopping lists.
+- Household maintenance.
+- Health appointments and general reminders.
+- Bills and expenses.
+- Recipes.
+- Documents and important contacts.
+- Ideas and projects.
+- Travel plans.
+- Education and learning.
+- Emergency information.
+
+Allow users to create, rename, reorder, and delete categories.
+
+## 5. Multiuser Family Collaboration
+
+Implement a shared family workspace with individual user accounts.
+
+Support the following roles:
+
+- Family Administrator: manages members, permissions, shared categories, and workspace settings.
+- Adult Member: creates, edits, shares, and manages permitted family information.
+- Limited Member: accesses selected notes, lists, and tasks.
+- Guest: accesses explicitly shared information only.
+
+The administrator must be able to invite family members through a secure invitation link or another verified invitation method.
+
+Every member must have an individual identity. Never use one shared password for the entire family.
+
+Implement:
+
+- Real-time synchronization.
+- Simultaneous editing with conflict handling.
+- Shared shopping lists.
+- Task assignment.
+- Comments or activity updates where useful.
+- Notifications when relevant changes occur.
+- Individual and family-specific views.
+- Access revocation when a member leaves the workspace.
+
+Private notes must remain private unless their owner explicitly shares them.
+
+## 6. Planning: Short, Medium, and Long Term
+
+Provide three integrated planning horizons.
+
+### Short Term
+Today through the next 7 days.
+
+Features:
+- Daily reminders.
+- Shopping and errands.
+- Appointments.
+- Household tasks.
+- Deadlines and quick follow-ups.
+
+### Medium Term
+The next 8 days through 12 months.
+
+Features:
+- Monthly objectives.
+- Recurring bills and maintenance.
+- Birthdays and family events.
+- School and work schedules.
+- Travel preparation.
+- Savings goals and planned purchases.
+
+### Long Term
+Beyond 12 months.
+
+Features:
+- Family projects.
+- Future purchases.
+- Education plans.
+- Home improvements.
+- Retirement and personal goals.
+- Long-term savings objectives.
+- Milestones and progress tracking.
+
+Allow users to move an item between horizons without losing its history, attachments, or reminders.
+
+Support deadlines, milestones, recurring activities, and progress indicators. Long-term plans must remain visible without overwhelming the daily interface.
+
+## 7. Intelligent Productivity Features
+
+Implement optional AI-powered functions:
+
+- Suggest categories and tags for new notes.
+- Convert voice recordings or dictated text into organized notes.
+- Extract possible tasks and deadlines from user-provided text.
+- Summarize lengthy notes.
+- Identify duplicate or closely related notes.
+- Suggest reminders when an explicit date or deadline is detected.
+- Generate a daily family summary.
+- Prepare a weekly overview of upcoming activities.
+- Answer questions about authorized family information, with links to the relevant notes.
+- Suggest practical next actions for unfinished projects.
+
+AI must never silently change important information, invent deadlines, or automatically send sensitive data to third parties.
+
+Ask for confirmation before creating consequential tasks, changing dates, or performing external actions.
+
+Make AI features optional, with clear privacy controls and understandable operating costs.
+
+## 8. Search and Information Retrieval
+
+Build a fast universal search system supporting:
+
+- Titles and full note contents.
+- Categories and tags.
+- People responsible.
+- Dates and deadlines.
+- Attachments where technically supported.
+- Completed and archived items.
+- Filters for personal versus shared information.
+
+Search results must respect user permissions. AI summaries and answers must never reveal content from inaccessible notes.
+
+Include a recently deleted area and allow recovery during a configurable retention period.
+
+## 9. Offline Mode and Synchronization
+
+The application must remain useful without an internet connection.
+
+- Save new notes locally.
+- Display previously downloaded information.
+- Queue changes for synchronization.
+- Retry failed synchronization automatically.
+- Resolve simultaneous edits without silently losing data.
+- Indicate synchronization status.
+- Handle interruptions and application restarts safely.
+
+Use an explicit conflict-resolution strategy, preserving both versions when automatic merging is unsafe.
+
+Protect locally stored information and securely remove cached data when access is revoked or an account is removed.
+
+## 10. Security and Privacy
+
+Implement security from the beginning.
+
+Requirements:
+
+- Secure authentication and account recovery.
+- Role-based authorization enforced by the backend.
+- Row-level security or equivalent database access policies.
+- Encryption in transit and at rest.
+- Secure storage of session credentials.
+- Rate limiting and abuse protection.
+- Audit history for important shared-workspace changes.
+- Safe file-upload validation.
+- Data export and account deletion.
+- Configurable retention and backup policies.
+- Protection against unauthorized access and common application vulnerabilities.
+
+Do not store passwords in plaintext or rely exclusively on hiding interface elements to enforce permissions.
+
+Treat family financial details, identification documents, medical notes, and emergency contacts as potentially sensitive.
+
+Provide clear consent and retention controls for AI processing and third-party services.
+
+## 11. Notifications and Reminders
+
+Support configurable notifications for:
+
+- Upcoming deadlines.
+- Overdue tasks.
+- Assigned tasks.
+- Shared-list changes.
+- Family events.
+- Recurring activities.
+- Important project milestones.
+
+Avoid sending notifications for every minor edit.
+
+Allow each user to control notification categories, quiet hours, and reminder frequency.
+
+Provide in-app reminders as a fallback when push notifications are unavailable.
+
+## 12. Recommended Data Model
+
+Design a normalized, maintainable database with entities such as:
+
+- Users
+- FamilyWorkspaces
+- WorkspaceMemberships
+- Notes
+- Categories
+- Tags
+- NoteTags
+- Tasks
+- TaskAssignments
+- ShoppingLists
+- ShoppingListItems
+- Reminders
+- Attachments
+- Comments
+- ActivityLogs
+- NotificationPreferences
+- SyncMetadata
+
+Define appropriate primary keys, foreign keys, indexes, timestamps, access policies, and deletion behavior.
+
+Support data migration and schema versioning.
+
+Avoid duplicating the same information across unrelated records.
+
+## 13. Interface and Accessibility
+
+Use a modern, lightweight design.
+
+- Clear typography and readable contrast.
+- Large touch targets.
+- Simple navigation.
+- Light and dark themes.
+- Adjustable text size.
+- Accessible labels and screen-reader support.
+- Portuguese (Brazil) as the initial language.
+- English as an additional language.
+- Localized date, time, and number formats.
+
+Keep the most frequently used functions accessible with minimal navigation.
+
+Avoid excessive menus, unnecessary animations, and intrusive advertising.
+
+## 14. Architecture and Quality Assurance
+
+Use a modular architecture with clearly separated interface, business logic, data access, authentication, synchronization, and notification services.
+
+Provide:
+
+- Version-controlled source code.
+- Environment-specific configuration.
+- Database migrations.
+- Automated unit and integration tests.
+- End-to-end tests for critical workflows.
+- Error logging and performance monitoring.
+- Secure deployment instructions.
+- Backup and recovery documentation.
+- A clear method for updating the application.
+
+Never expose secret API keys, database administrator credentials, or service-role tokens in the mobile application.
+
+## 15. Development Roadmap
+
+Build incrementally.
+
+**Phase 1 — Essential MVP**
+- User registration and login.
+- Personal notes.
+- Family workspace and invitations.
+- Shared notes and shopping lists.
+- Categories, search, and basic reminders.
+- Cloud synchronization.
+- Essential access controls.
+
+**Phase 2 — Productivity**
+- Short-, medium-, and long-term planning.
+- Task assignment.
+- Recurring activities.
+- Offline mode.
+- Attachments.
+- Notification preferences.
+- Recovery and export functions.
+
+**Phase 3 — Intelligence**
+- Voice dictation.
+- AI categorization and summaries.
+- Smart task extraction.
+- Family planning summaries.
+- Permission-aware natural-language search.
+
+**Phase 4 — Advanced Capabilities**
+- Optional calendar integrations.
+- Household expense tracking.
+- Document expiration reminders.
+- Emergency information.
+- Home maintenance schedules.
+- Advanced analytics and customizable dashboards.
+
+Keep the core application useful without paid AI services or external integrations.
+
+## 16. Acceptance Criteria
+
+The project is complete only when:
+
+1. Two or more authorized users can share and update information across devices.
+2. Private notes remain inaccessible to other family members.
+3. Unauthorized users cannot access data by manipulating application requests.
+4. Notes survive application restarts and network interruptions.
+5. Synchronization conflicts do not silently destroy information.
+6. Search and filters return accurate, permission-aware results.
+7. Reminders respect user settings and time zones.
+8. Export, recovery, and account deletion workflows are tested.
+9. Critical functions have automated tests.
+10. The application can be deployed and maintained using documented procedures.
+
+## 17. Instructions to the Coding AI
+
+First, analyze the complete specification and propose the simplest reliable architecture.
+
+Then provide the database schema, security model, screen structure, and implementation plan.
+
+After that, implement the application in functional stages, testing each stage before proceeding.
+
+Do not merely generate attractive mockups or static screens. Build a working application with real authentication, persistent storage, shared data, synchronization, and enforced permissions.
+
+When a feature requires an external service, identify the dependency, configuration, privacy implications, and cost before integrating it.
+
+Prioritize reliability, simplicity, accessibility, data protection, and low operating costs over unnecessary complexity.
+
+Deliver the source code, setup instructions, database deployment scripts, test suite, and a checklist for production release.
+
+The final product must be a practical family organization tool that ordinary people can use every day without technical knowledge.
