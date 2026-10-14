@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import '../../domain/repositories.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.notes, required this.onNewNote, this.onOpen});
+class NotesScreen extends StatefulWidget {
+  const NotesScreen({super.key, required this.notes, required this.onNewNote, this.onOpen});
   final NoteRepository notes;
   final VoidCallback onNewNote;
   final void Function(Note)? onOpen;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<NotesScreen> createState() => _NotesScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _NotesScreenState extends State<NotesScreen> {
   late Future<List<Note>> _future = widget.notes.recent();
   final _search = TextEditingController();
 
@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Início')),
+      appBar: AppBar(title: const Text('Notas')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [

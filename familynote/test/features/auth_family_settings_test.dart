@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:familynote/app/providers.dart';
@@ -49,27 +50,73 @@ void main() {
           members: [
             Member(userId: 'me', displayName: '', role: myRole),
             const Member(userId: 'u2', displayName: 'Maria', role: Role.adult),
+            const Member(userId: 'u3', displayName: '', role: Role.adult),
           ],
         );
 
-    testWidgets('admin sees invite button and the code', (t) async {
-      final repo = repoWith(Role.admin);
-      await t.pumpWidget(_wrap(FamilyScreen(repo: repo, workspaceId: 'ws1')));
+    Widget screen(FakeWorkspaceRepository repo, List<Uri> opened, {bool ok = true}) =>
+        _wrap(FamilyScreen(
+          repo: repo,
+          workspaceId: 'ws1',
+          appUrl: 'https://familia.exemplo.com',
+          openUrl: (u) async {
+            opened.add(u);
+            return ok;
+          },
+        ));
+
+    testWidgets('shows real names, with a fallback for unnamed members', (t) async {
+      await t.pumpWidget(screen(repoWith(Role.admin), []));
       await t.pumpAndSettle();
       expect(find.text('Maria'), findsOneWidget);
       expect(find.text('Você'), findsOneWidget);
-      await t.tap(find.text('Convidar alguém da família'));
-      await t.pumpAndSettle();
-      expect(find.text('TOKEN0'), findsOneWidget);
-      expect(find.text('Copiar código'), findsOneWidget);
+      expect(find.text('Membro da família'), findsOneWidget);
     });
 
-    testWidgets('non-admin has no invite button but can enter a code', (t) async {
-      final repo = repoWith(Role.adult);
-      await t.pumpWidget(_wrap(FamilyScreen(repo: repo, workspaceId: 'ws1')));
+    testWidgets('admin invites: WhatsApp and copy buttons with the join link', (t) async {
+      final opened = <Uri>[];
+      await t.pumpWidget(screen(repoWith(Role.admin), opened));
       await t.pumpAndSettle();
-      expect(find.text('Convidar alguém da família'), findsNothing);
-      expect(find.byKey(const Key('join-code')), findsOneWidget);
+      expect(find.text('Enviar pelo WhatsApp'), findsNothing);
+      await t.tap(find.text('Convidar alguém'));
+      await t.pumpAndSettle();
+      expect(find.text('Enviar pelo WhatsApp'), findsOneWidget);
+      expect(find.text('Copiar link'), findsOneWidget);
+      expect(t.getSize(find.byKey(const Key('btn-whatsapp'))).height, greaterThanOrEqualTo(56));
+      expect(t.getSize(find.byKey(const Key('btn-copy'))).height, greaterThanOrEqualTo(56));
+      expect(t.widget<SelectableText>(find.byKey(const Key('invite-link'), skipOffstage: false)).data,
+          'https://familia.exemplo.com/#/join/TOKEN0');
+
+      await t.tap(find.text('Enviar pelo WhatsApp'));
+      await t.pumpAndSettle();
+      expect(opened.single.host, 'wa.me');
+      expect(opened.single.queryParameters['text'], contains('https://familia.exemplo.com/#/join/TOKEN0'));
+    });
+
+    testWidgets('copy puts the link on the clipboard', (t) async {
+      String? copied;
+      t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      });
+      addTearDown(() => t.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      await t.pumpWidget(screen(repoWith(Role.admin), []));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Convidar alguém'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Copiar link'));
+      await t.pumpAndSettle();
+      expect(copied, 'https://familia.exemplo.com/#/join/TOKEN0');
+      expect(find.text('Link copiado'), findsOneWidget);
+    });
+
+    testWidgets('non-admin has no invite button', (t) async {
+      await t.pumpWidget(screen(repoWith(Role.adult), []));
+      await t.pumpAndSettle();
+      expect(find.text('Convidar alguém'), findsNothing);
     });
   });
 
