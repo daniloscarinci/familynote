@@ -10,3 +10,5 @@ build/
 !.env.example
 familynote/supabase/node_modules/
 familynote/supabase/.temp/
+
+familynote/dart_defines.json
