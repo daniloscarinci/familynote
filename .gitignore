@@ -3,3 +3,10 @@ build/
 *.iml
 .idea/
 .flutter-plugins*
+
+# secrets and tooling
+.env
+.env.*
+!.env.example
+familynote/supabase/node_modules/
+familynote/supabase/.temp/
