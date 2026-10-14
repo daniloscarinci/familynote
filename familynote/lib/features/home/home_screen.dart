@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
                 return ListView.separated(
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(),
+                  separatorBuilder: (_, _) => const Divider(),
                   itemBuilder: (_, i) => ListTile(
                     minVerticalPadding: 16,
                     title: Text(items[i].title.isEmpty ? '(sem título)' : items[i].title),

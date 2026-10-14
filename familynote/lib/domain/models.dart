@@ -39,3 +39,17 @@ class ShoppingList {
   final String name;
   const ShoppingList({required this.id, required this.name});
 }
+
+class Member {
+  final String userId;
+  final String displayName;
+  final Role role;
+  const Member({required this.userId, required this.displayName, required this.role});
+}
+
+String roleLabel(Role r) => switch (r) {
+      Role.admin => 'Administrador',
+      Role.adult => 'Adulto',
+      Role.limited => 'Acesso limitado',
+      Role.guest => 'Convidado',
+    };
