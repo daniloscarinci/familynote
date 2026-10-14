@@ -21,6 +21,7 @@ Widget _app(FakeAuthRepository auth, FakeWorkspaceRepository ws) {
     ],
     child: const FamilyNoteApp(),
   );
+}
 
 void main() {
   testWidgets('signed out shows the sign-in screen', (t) async {
