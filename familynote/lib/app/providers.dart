@@ -39,14 +39,28 @@ final joinTokenProvider = NotifierProvider<JoinTokenNotifier, String?>(JoinToken
 
 const textScaleKey = 'text_scale';
 
+/// Text sizes the person can choose: Normal, Grande, Muito grande, Enorme.
+const textScaleValues = <double>[1.0, 1.3, 1.6, 2.0];
+
+/// Nearest allowed choice, so values stored by older versions (1.25, 1.5)
+/// and anything out of range still select a real option.
+double snapTextScale(double v) {
+  var best = textScaleValues.first;
+  for (final c in textScaleValues) {
+    if ((c - v).abs() < (best - v).abs()) best = c;
+  }
+  return best;
+}
+
 /// Initial text scale loaded from shared_preferences in main(); 1.0 in tests.
 final initialTextScaleProvider = Provider<double>((ref) => 1.0);
 
 class TextScaleNotifier extends Notifier<double> {
   @override
-  double build() => ref.watch(initialTextScaleProvider);
+  double build() => snapTextScale(ref.watch(initialTextScaleProvider));
 
   Future<void> set(double v) async {
+    v = snapTextScale(v);
     state = v;
     try {
       final p = await SharedPreferences.getInstance();
