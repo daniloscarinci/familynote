@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import '../../domain/models.dart';
 import '../../domain/repositories.dart';
 
-/// Three giant buttons, a small "Mais", and the latest notes.
+/// Giant buttons, a small "Mais", and the latest notes.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.notes,
-    required this.onNewNote,
+    required this.onWriteAll,
     required this.onShoppingList,
     required this.onFamilyNotes,
     required this.onMore,
     this.onOpen,
+    this.isAdmin = false,
+    this.onInvite,
   });
   final NoteRepository notes;
-  final VoidCallback onNewNote;
+  final VoidCallback onWriteAll;
   final VoidCallback onShoppingList;
   final VoidCallback onFamilyNotes;
   final VoidCallback onMore;
   final void Function(Note)? onOpen;
+
+  /// Only the family admin sees "Convidar a família".
+  final bool isAdmin;
+  final VoidCallback? onInvite;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -35,10 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _BigButton(
-              key: const Key('btn-new-note'),
+              key: const Key('btn-write-all'),
               icon: Icons.edit,
-              label: 'Escrever uma nota',
-              onPressed: widget.onNewNote),
+              label: 'Escrever tudo aqui',
+              onPressed: widget.onWriteAll),
           const SizedBox(height: 16),
           _BigButton(
               key: const Key('btn-shopping'),
@@ -51,6 +57,14 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icons.groups,
               label: 'O que a família escreveu',
               onPressed: widget.onFamilyNotes),
+          if (widget.isAdmin && widget.onInvite != null) ...[
+            const SizedBox(height: 16),
+            _BigButton(
+                key: const Key('btn-invite-home'),
+                icon: Icons.person_add,
+                label: 'Convidar a família',
+                onPressed: widget.onInvite!),
+          ],
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
@@ -80,7 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ListTile(
                     minVerticalPadding: 16,
                     title: Text(n.title.isEmpty ? '(sem título)' : n.title),
-                    subtitle: Text(n.isPrivate ? 'Só para mim' : 'Compartilhada com a família'),
+                    subtitle: Text([
+                      if (n.category != null) n.category!,
+                      n.isPrivate ? 'Só para mim' : 'Compartilhada com a família',
+                    ].join(' · ')),
                     onTap: () => widget.onOpen?.call(n),
                   ),
               ]);

@@ -63,9 +63,12 @@ class _SharedNotesScreenState extends State<SharedNotesScreen> {
             itemBuilder: (_, i) => ListTile(
               minVerticalPadding: 16,
               title: Text(items[i].title.isEmpty ? '(sem título)' : items[i].title),
-              subtitle: items[i].body.isEmpty
-                  ? null
-                  : Text(items[i].body, maxLines: 2, overflow: TextOverflow.ellipsis),
+              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (items[i].category != null)
+                  Text(items[i].category!, key: const Key('note-category')),
+                if (items[i].body.isNotEmpty)
+                  Text(items[i].body, maxLines: 2, overflow: TextOverflow.ellipsis),
+              ]),
               onTap: () => widget.onOpen?.call(items[i]),
             ),
           );

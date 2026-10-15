@@ -59,10 +59,36 @@ void main() {
     await t.tap(find.widgetWithText(ElevatedButton, 'Entrar'));
     await t.pumpAndSettle();
 
-    expect(find.text('Escrever uma nota'), findsOneWidget);
+    expect(find.text('Escrever tudo aqui'), findsOneWidget);
     expect(find.text('Lista de compras'), findsOneWidget);
     expect(find.text('O que a família escreveu'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  group('invite on Home', () {
+    testWidgets('admin sees the button and it opens Familia with the invite ready', (t) async {
+      final ws = FakeWorkspaceRepository(
+        workspaceId: 'ws1',
+        members: [const Member(userId: 'me', displayName: '', role: Role.admin)],
+      );
+      await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Convidar a família'));
+      await t.pumpAndSettle();
+      expect(find.text('Enviar pelo WhatsApp'), findsOneWidget);
+      expect(find.text('Copiar link'), findsOneWidget);
+    });
+
+    testWidgets('non-admin does not see it', (t) async {
+      final ws = FakeWorkspaceRepository(
+        workspaceId: 'ws1',
+        members: [const Member(userId: 'me', displayName: '', role: Role.adult)],
+      );
+      await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
+      await t.pumpAndSettle();
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
+      expect(find.text('Convidar a família'), findsNothing);
+    });
   });
 
   group('automatic family', () {
@@ -71,7 +97,7 @@ void main() {
       await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
       await t.pumpAndSettle();
       expect(ws.createdNames, ['Minha família']);
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
       expect(find.text('Criar a sua família'), findsNothing);
     });
 
@@ -85,7 +111,7 @@ void main() {
       ws.createError = null;
       await t.tap(find.text('Tentar de novo'));
       await t.pumpAndSettle();
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
   });
 
@@ -107,7 +133,7 @@ void main() {
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
       expect(profiles.name, 'Vovó Rosa');
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
 
     testWidgets('already signed in with a token just accepts it', (t) async {
@@ -118,7 +144,7 @@ void main() {
       expect(auth.anonymousSignIns, 0);
       expect(ws.workspaceId, 'ws1');
       expect(ws.createdNames, isEmpty);
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
 
     testWidgets('bad link shows a friendly message and a way to continue', (t) async {
@@ -130,7 +156,7 @@ void main() {
       await t.tap(find.text('Continuar sem o convite'));
       await t.pumpAndSettle();
       expect(ws.createdNames, ['Minha família']);
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
 
     testWidgets('anonymous sign-in failure is explained in plain words', (t) async {
@@ -172,7 +198,7 @@ void main() {
       }
       await t.tap(find.text('Voltar ao início'));
       await t.pumpAndSettle();
-      expect(find.text('Escrever uma nota'), findsOneWidget);
+      expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
 
     testWidgets('Lista de compras creates "Compras" and opens it', (t) async {

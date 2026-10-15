@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/models.dart';
+import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
 
 class ListDetailScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class ListDetailScreen extends StatefulWidget {
 class _ListDetailScreenState extends State<ListDetailScreen> {
   final _text = TextEditingController();
   List<ShoppingItem> _items = [];
+  String? _message;
 
   @override
   void initState() {
@@ -32,12 +34,58 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
     if (mounted) setState(() => _items = i);
   }
 
+  /// Accepts one item or a whole pasted list; the organizer sorts it out.
   Future<void> _add() async {
     final t = _text.text.trim();
     if (t.isEmpty) return;
-    await widget.repo.addItem(widget.list.id, t);
+    final r = organize(t, forceShopping: true, existing: _items.map((i) => i.text));
+    for (final e in r.shopping) {
+      await widget.repo.addItem(widget.list.id, e.text);
+    }
     _text.clear();
+    _message = r.shopping.isEmpty ? 'Isso já estava na lista.' : null;
     await _load();
+  }
+
+  Widget _row(ShoppingItem i) => CheckboxListTile(
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        controlAffinity: ListTileControlAffinity.leading,
+        title: Text(i.text,
+            style: TextStyle(
+                fontSize: 20, decoration: i.checked ? TextDecoration.lineThrough : null)),
+        value: i.checked,
+        onChanged: (v) async {
+          await widget.repo.setChecked(i.id, v ?? false);
+          await _load();
+        },
+      );
+
+  Widget _header(String text, {Key? key}) => Padding(
+        key: key,
+        padding: const EdgeInsets.only(top: 16, bottom: 4),
+        child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+      );
+
+  List<Widget> _groups() {
+    final open = _items.where((i) => !i.checked).toList();
+    final done = _items.where((i) => i.checked).toList();
+    final byCategory = <ShoppingCategory, List<ShoppingItem>>{};
+    for (final i in open) {
+      (byCategory[categoryOfItem(i.text)] ??= []).add(i);
+    }
+    int cmp(ShoppingItem a, ShoppingItem b) =>
+        shoppingKey(a.text).compareTo(shoppingKey(b.text));
+    return [
+      for (final c in ShoppingCategory.values)
+        if (byCategory[c] != null) ...[
+          _header(c.label, key: Key('group-${c.label}')),
+          for (final i in byCategory[c]!..sort(cmp)) _row(i),
+        ],
+      if (done.isNotEmpty) ...[
+        _header('Já comprei', key: const Key('group-done')),
+        for (final i in done..sort(cmp)) _row(i),
+      ],
+    ];
   }
 
   @override
@@ -47,37 +95,32 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
               child: TextField(
                 controller: _text,
-                decoration: const InputDecoration(labelText: 'Novo item'),
-                onSubmitted: (_) => _add(),
+                minLines: 1,
+                maxLines: 4,
+                keyboardType: TextInputType.multiline,
+                decoration: const InputDecoration(
+                  labelText: 'Novo item',
+                  helperText: 'Pode colar a lista inteira.',
+                ),
               ),
             ),
             const SizedBox(width: 12),
-            ElevatedButton(onPressed: _add, child: const Text('Adicionar')),
-          ]),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              children: [
-                for (final i in _items)
-                  CheckboxListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    title: Text(i.text,
-                        style: TextStyle(
-                            fontSize: 20,
-                            decoration: i.checked ? TextDecoration.lineThrough : null)),
-                    value: i.checked,
-                    onChanged: (v) async {
-                      await widget.repo.setChecked(i.id, v ?? false);
-                      await _load();
-                    },
-                  ),
-              ],
+            ElevatedButton(
+              onPressed: _add,
+              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 56)),
+              child: const Text('Adicionar'),
             ),
-          ),
+          ]),
+          if (_message != null) ...[
+            const SizedBox(height: 8),
+            Text(_message!, key: const Key('list-message')),
+          ],
+          const SizedBox(height: 8),
+          Expanded(child: ListView(children: _groups())),
         ]),
       ),
     );

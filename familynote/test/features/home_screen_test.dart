@@ -10,9 +10,11 @@ import 'package:familynote/features/notes/shared_notes_screen.dart';
 
 Widget _wrap(Widget w) => MaterialApp(theme: buildTheme(), home: w);
 
-Widget _home(NoteRepository notes, {List<String>? log}) => _wrap(HomeScreen(
+Widget _home(NoteRepository notes, {List<String>? log, bool isAdmin = false}) => _wrap(HomeScreen(
       notes: notes,
-      onNewNote: () => log?.add('note'),
+      onWriteAll: () => log?.add('note'),
+      isAdmin: isAdmin,
+      onInvite: () => log?.add('invite'),
       onShoppingList: () => log?.add('shopping'),
       onFamilyNotes: () => log?.add('family'),
       onMore: () => log?.add('more'),
@@ -23,7 +25,7 @@ void main() {
     testWidgets('three giant labelled buttons, each >= 88dp, text >= 22', (t) async {
       await t.pumpWidget(_home(FakeNoteRepository()));
       await t.pumpAndSettle();
-      for (final label in ['Escrever uma nota', 'Lista de compras', 'O que a família escreveu']) {
+      for (final label in ['Escrever tudo aqui', 'Lista de compras', 'O que a família escreveu']) {
         final btn = find.widgetWithText(ElevatedButton, label);
         expect(btn, findsOneWidget, reason: label);
         final size = t.getSize(btn);
@@ -51,11 +53,37 @@ void main() {
     testWidgets('each button triggers its callback', (t) async {
       final log = <String>[];
       await t.pumpWidget(_home(FakeNoteRepository(), log: log));
-      await t.tap(find.text('Escrever uma nota'));
+      await t.tap(find.text('Escrever tudo aqui'));
       await t.tap(find.text('Lista de compras'));
       await t.tap(find.text('O que a família escreveu'));
       await t.tap(find.text('Mais'));
       expect(log, ['note', 'shopping', 'family', 'more']);
+    });
+
+    testWidgets('admin sees a full-width Convidar a familia button of >= 72dp', (t) async {
+      final log = <String>[];
+      await t.pumpWidget(_home(FakeNoteRepository(), log: log, isAdmin: true));
+      await t.pumpAndSettle();
+      final btn = find.widgetWithText(ElevatedButton, 'Convidar a família');
+      expect(btn, findsOneWidget);
+      expect(t.getSize(btn).height, greaterThanOrEqualTo(72));
+      expect(t.getSize(btn).width, greaterThan(300));
+      await t.tap(btn);
+      expect(log, ['invite']);
+    });
+
+    testWidgets('non-admin does not see the invite button', (t) async {
+      await t.pumpWidget(_home(FakeNoteRepository()));
+      await t.pumpAndSettle();
+      expect(find.text('Convidar a família'), findsNothing);
+    });
+
+    testWidgets('recent notes show their category', (t) async {
+      final repo = FakeNoteRepository();
+      await repo.create(title: 'Consulta', body: '', categoryName: 'Saúde');
+      await t.pumpWidget(_home(repo));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Saúde'), findsOneWidget);
     });
 
     testWidgets('lists recent notes below the buttons', (t) async {
@@ -71,7 +99,7 @@ void main() {
   group('NotesScreen (inside Mais)', () {
     testWidgets('shows a large labelled New Note button', (t) async {
       await t.pumpWidget(_wrap(NotesScreen(notes: FakeNoteRepository(), onNewNote: () {})));
-      final btn = find.widgetWithText(ElevatedButton, 'Nova nota');
+      final btn = find.widgetWithText(ElevatedButton, 'Escrever tudo aqui');
       expect(btn, findsOneWidget);
       expect(t.getSize(btn).height, greaterThanOrEqualTo(56));
     });
@@ -87,6 +115,27 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Consulta dentista'), findsNothing);
       expect(find.text('Mercado'), findsOneWidget);
+    });
+  });
+
+  group('NotesScreen filters', () {
+    testWidgets('chips only for categories that exist, filter works', (t) async {
+      final repo = FakeNoteRepository();
+      await repo.create(title: 'Dentista', body: '', categoryName: 'Saúde');
+      await repo.create(title: 'Luz', body: '', categoryName: 'Contas');
+      await t.pumpWidget(_wrap(NotesScreen(notes: repo, onNewNote: () {})));
+      await t.pumpAndSettle();
+      expect(find.widgetWithText(ChoiceChip, 'Saúde'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'Contas'), findsOneWidget);
+      expect(find.widgetWithText(ChoiceChip, 'Viagem'), findsNothing);
+      expect(t.getSize(find.widgetWithText(ChoiceChip, 'Saúde')).height, greaterThanOrEqualTo(48));
+      await t.tap(find.widgetWithText(ChoiceChip, 'Saúde'));
+      await t.pumpAndSettle();
+      expect(find.text('Dentista'), findsOneWidget);
+      expect(find.text('Luz'), findsNothing);
+      await t.tap(find.widgetWithText(ChoiceChip, 'Todas'));
+      await t.pumpAndSettle();
+      expect(find.text('Luz'), findsOneWidget);
     });
   });
 

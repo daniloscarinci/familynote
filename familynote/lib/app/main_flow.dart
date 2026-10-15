@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/messages.dart';
 import '../domain/models.dart';
+import '../features/capture/capture_screen.dart';
 import '../features/family/family_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/lists/default_list.dart';
@@ -26,6 +27,32 @@ class _MainFlowState extends ConsumerState<MainFlow> {
   late final notes = ref.read(noteRepositoryFactoryProvider)(widget.workspaceId);
   late final lists = ref.read(listRepositoryFactoryProvider)(widget.workspaceId);
   int _rev = 0;
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdmin();
+  }
+
+  /// The invite button shows only once we know the person is the admin.
+  Future<void> _checkAdmin() async {
+    try {
+      final repo = ref.read(workspaceRepositoryProvider);
+      final members = await repo.members(widget.workspaceId);
+      final admin = members.any((m) => m.userId == repo.currentUserId && m.role == Role.admin);
+      if (mounted) setState(() => _isAdmin = admin);
+    } catch (_) {
+      // Stay hidden; the Família screen under "Mais" explains and can retry.
+    }
+  }
+
+  Widget _familyScreen() => FamilyScreen(
+        repo: ref.read(workspaceRepositoryProvider),
+        workspaceId: widget.workspaceId,
+        appUrl: ref.read(appUrlProvider),
+        openUrl: ref.read(urlOpenerProvider),
+      );
 
   Future<void> _push(Widget page) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -51,14 +78,12 @@ class _MainFlowState extends ConsumerState<MainFlow> {
         builder: (ctx) => AppShell(
           onBack: () => Navigator.of(ctx).pop(),
           tabs: [
-            NotesScreen(notes: notes, onNewNote: _openEditor, onOpen: _openEditor),
+            NotesScreen(
+                notes: notes,
+                onNewNote: () => _push(CaptureScreen(notes: notes, lists: lists)),
+                onOpen: _openEditor),
             ListsScreen(repo: lists),
-            FamilyScreen(
-              repo: ref.read(workspaceRepositoryProvider),
-              workspaceId: widget.workspaceId,
-              appUrl: ref.read(appUrlProvider),
-              openUrl: ref.read(urlOpenerProvider),
-            ),
+            _familyScreen(),
             SettingsScreen(onSignOut: () {
               Navigator.of(ctx).pop();
               ref.read(authRepositoryProvider).signOut();
@@ -72,7 +97,9 @@ class _MainFlowState extends ConsumerState<MainFlow> {
     return HomeScreen(
       key: ValueKey(_rev),
       notes: notes,
-      onNewNote: _openEditor,
+      onWriteAll: () => _push(CaptureScreen(notes: notes, lists: lists)),
+      isAdmin: _isAdmin,
+      onInvite: () => _push(_familyScreen()),
       onOpen: _openEditor,
       onShoppingList: _openShopping,
       onFamilyNotes: () => _push(SharedNotesScreen(notes: notes, onOpen: _openEditor)),

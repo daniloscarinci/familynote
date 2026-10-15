@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/status.dart';
 import '../../domain/autosave.dart';
 import '../../domain/models.dart';
+import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
 
 class NoteEditorScreen extends StatefulWidget {
@@ -32,12 +33,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   Future<void> _persist() async {
     if (_id == null) {
-      final n = await widget.notes.create(title: _title.text, body: _body.text);
+      final n = await widget.notes
+          .create(title: _title.text, body: _body.text, categoryName: _topic());
       _id = n.id;
     } else {
-      await widget.notes.update(_id!, title: _title.text, body: _body.text);
+      await widget.notes
+          .update(_id!, title: _title.text, body: _body.text, categoryName: _topic());
     }
   }
+
+  /// The topic is always picked by the organizer, never by hand.
+  String _topic() => categoryOfNote('${_title.text} ${_body.text}').label;
 
   void _changed() => _saver.onChanged('${_title.text}\n${_body.text}');
 
@@ -72,6 +78,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          if (widget.existing?.category != null)
+            Text('Assunto: ${widget.existing!.category}', key: const Key('note-category')),
           Text(statusLabel(_status), key: const Key('save-status')),
         ]),
       ),
