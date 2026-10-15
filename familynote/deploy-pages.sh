@@ -3,6 +3,8 @@
 # Run from Git Bash, in the T: mapped folder (the project path has an apostrophe):
 #   export PATH="/c/Users/danil/dev/flutter/bin:$PATH"; cd /t/familynote; ./deploy-pages.sh
 set -euo pipefail
+# Git Bash on Windows would rewrite "/familynote/" into a C:/Program Files/Git path.
+export MSYS_NO_PATHCONV=1
 
 OWNER="daniloscarinci"
 REPO="familynote"
