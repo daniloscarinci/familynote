@@ -169,6 +169,16 @@ class SupabaseAuthRepository implements AuthRepository {
       _db.auth.verifyOTP(email: email, token: code, type: OtpType.email);
 
   @override
+  Future<void> signInWithPassword(String email, String password) =>
+      _db.auth.signInWithPassword(email: email, password: password);
+
+  @override
+  Future<void> signUpWithPassword(String email, String password) async {
+    final r = await _db.auth.signUp(email: email, password: password);
+    if (r.session == null) throw const ConfirmationRequired();
+  }
+
+  @override
   Future<void> signInAnonymously() => _db.auth.signInAnonymously();
 
   @override

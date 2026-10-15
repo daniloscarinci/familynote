@@ -38,7 +38,8 @@ void main() {
   testWidgets('signed out shows the sign-in screen', (t) async {
     await t.pumpWidget(_app(FakeAuthRepository(), FakeWorkspaceRepository()));
     await t.pumpAndSettle();
-    expect(find.text('Enviar código'), findsOneWidget);
+    expect(find.text('Criar minha conta'), findsOneWidget);
+    expect(find.text('Prefiro receber um código por e-mail'), findsOneWidget);
   });
 
   testWidgets('sign in, then Home with three big buttons and no bottom bar', (t) async {
@@ -49,6 +50,8 @@ void main() {
     await t.pumpWidget(_app(FakeAuthRepository(), ws));
     await t.pumpAndSettle();
 
+    await t.tap(find.text('Prefiro receber um código por e-mail'));
+    await t.pumpAndSettle();
     await t.enterText(find.byType(TextField).first, 'a@b.com');
     await t.tap(find.text('Enviar código'));
     await t.pumpAndSettle();
@@ -98,7 +101,7 @@ void main() {
       expect(ws.createdNames, isEmpty, reason: 'must join, not create a family');
       expect(ws.workspaceId, 'ws1');
       expect(find.text('Qual é o seu nome?'), findsOneWidget);
-      expect(find.text('Enviar código'), findsNothing);
+      expect(find.text('Criar minha conta'), findsNothing);
 
       await t.enterText(find.byKey(const Key('display-name')), 'Vovó Rosa');
       await t.tap(find.text('Continuar'));

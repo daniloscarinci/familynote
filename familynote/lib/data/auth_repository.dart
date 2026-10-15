@@ -1,10 +1,20 @@
 import 'dart:async';
 
+/// Thrown by sign-up when the account exists but must be confirmed by e-mail.
+class ConfirmationRequired implements Exception {
+  const ConfirmationRequired();
+  @override
+  String toString() => 'ConfirmationRequired';
+}
+
 abstract class AuthRepository {
   /// Emits the current state on listen, then every change.
   Stream<bool> get signedIn;
   Future<void> sendCode(String email);
   Future<void> verifyCode(String email, String code);
+  Future<void> signInWithPassword(String email, String password);
+  /// Throws [ConfirmationRequired] when the e-mail must be confirmed first.
+  Future<void> signUpWithPassword(String email, String password);
   /// Creates a real, individual account bound to this device (invite links).
   Future<void> signInAnonymously();
   Future<void> signOut();
@@ -36,6 +46,24 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> verifyCode(String email, String code) async {
     if (code != validCode) throw Exception('invalid code');
+    _set(true);
+  }
+
+  final accounts = <String, String>{};
+  bool requireConfirmation = false;
+
+  @override
+  Future<void> signInWithPassword(String email, String password) async {
+    if (accounts[email] != password) throw Exception('Invalid login credentials');
+    _set(true);
+  }
+
+  @override
+  Future<void> signUpWithPassword(String email, String password) async {
+    if (password.length < 6) throw Exception('Password should be at least 6 characters');
+    if (accounts.containsKey(email)) throw Exception('User already registered');
+    accounts[email] = password;
+    if (requireConfirmation) throw const ConfirmationRequired();
     _set(true);
   }
 

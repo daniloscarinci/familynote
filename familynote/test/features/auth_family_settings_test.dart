@@ -18,7 +18,8 @@ void main() {
     testWidgets('email -> code -> signed in', (t) async {
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
-      expect(find.text('Entrar'), findsOneWidget); // app bar title only
+      await t.tap(find.text('Prefiro receber um código por e-mail'));
+      await t.pumpAndSettle();
       await t.enterText(find.byType(TextField), 'ana@exemplo.com');
       await t.tap(find.text('Enviar código'));
       await t.pumpAndSettle();
@@ -33,6 +34,8 @@ void main() {
     testWidgets('wrong code shows an error', (t) async {
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await t.tap(find.text('Prefiro receber um código por e-mail'));
+      await t.pumpAndSettle();
       await t.enterText(find.byType(TextField), 'ana@exemplo.com');
       await t.tap(find.text('Enviar código'));
       await t.pumpAndSettle();
@@ -41,6 +44,93 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byKey(const Key('error')), findsOneWidget);
       expect(await auth.signedIn.first, isFalse);
+    });
+  });
+
+  group('SignInScreen password', () {
+    Future<void> fill(WidgetTester t, String email, String pw) async {
+      await t.enterText(find.byKey(const Key('email')), email);
+      await t.enterText(find.byKey(const Key('password')), pw);
+    }
+
+    testWidgets('sign in success', (t) async {
+      final auth = FakeAuthRepository()..accounts['ana@exemplo.com'] = 'segredo1';
+      await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await fill(t, 'ana@exemplo.com', 'segredo1');
+      await t.tap(find.byKey(const Key('primary')));
+      await t.pumpAndSettle();
+      expect(await auth.signedIn.first, isTrue);
+    });
+
+    testWidgets('wrong password shows plain message', (t) async {
+      final auth = FakeAuthRepository()..accounts['ana@exemplo.com'] = 'segredo1';
+      await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await fill(t, 'ana@exemplo.com', 'errada');
+      await t.tap(find.byKey(const Key('primary')));
+      await t.pumpAndSettle();
+      expect(find.text('E-mail ou senha incorretos.'), findsOneWidget);
+      expect(await auth.signedIn.first, isFalse);
+    });
+
+    testWidgets('create account success', (t) async {
+      final auth = FakeAuthRepository();
+      await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await t.tap(find.text('Criar minha conta'));
+      await t.pumpAndSettle();
+      expect(find.widgetWithText(ElevatedButton, 'Criar conta'), findsOneWidget);
+      await fill(t, 'ana@exemplo.com', 'segredo1');
+      await t.tap(find.byKey(const Key('primary')));
+      await t.pumpAndSettle();
+      expect(await auth.signedIn.first, isTrue);
+    });
+
+    testWidgets('create account needing confirmation', (t) async {
+      final auth = FakeAuthRepository()..requireConfirmation = true;
+      await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await t.tap(find.text('Criar minha conta'));
+      await t.pumpAndSettle();
+      await fill(t, 'ana@exemplo.com', 'segredo1');
+      await t.tap(find.byKey(const Key('primary')));
+      await t.pumpAndSettle();
+      expect(find.text('Enviamos um e-mail para confirmar. Abra o link e depois entre aqui.'),
+          findsOneWidget);
+      expect(await auth.signedIn.first, isFalse);
+    });
+
+    testWidgets('short password is explained', (t) async {
+      final auth = FakeAuthRepository();
+      await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
+      await t.tap(find.text('Criar minha conta'));
+      await t.pumpAndSettle();
+      await fill(t, 'ana@exemplo.com', '123');
+      await t.tap(find.byKey(const Key('primary')));
+      await t.pumpAndSettle();
+      expect(find.text('A senha precisa ter pelo menos 6 caracteres.'), findsOneWidget);
+    });
+
+    testWidgets('show password toggle reveals the text', (t) async {
+      await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
+      EditableText field() => t.widget<EditableText>(find.descendant(
+          of: find.byKey(const Key('password')), matching: find.byType(EditableText)));
+      expect(field().obscureText, isTrue);
+      await t.tap(find.text('Mostrar senha'));
+      await t.pumpAndSettle();
+      expect(field().obscureText, isFalse);
+    });
+
+    testWidgets('switching to the code flow works', (t) async {
+      await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
+      await t.tap(find.text('Prefiro receber um código por e-mail'));
+      await t.pumpAndSettle();
+      expect(find.text('Enviar código'), findsOneWidget);
+      expect(find.byKey(const Key('password')), findsNothing);
+    });
+
+    testWidgets('targets are at least 56dp', (t) async {
+      await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
+      for (final k in ['primary', 'toggle-create', 'use-code', 'show-password']) {
+        expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(56), reason: k);
+      }
     });
   });
 

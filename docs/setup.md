@@ -38,11 +38,18 @@ The mapping resets on reboot. Moving the project to a path without an apostrophe
 
 Never run the tests against a database holding real family data.
 
-## 3. Email sign-in (one-time Supabase setting)
-The app signs in with a code sent by email.
-1. Supabase dashboard → Authentication → Email Templates → **Magic Link**.
-2. Make sure the body contains `{{ .Token }}` (for example: `Seu código: {{ .Token }}`).
-3. The built-in mail sender is rate limited. For real use, configure custom SMTP (Authentication → SMTP Settings).
+## 3. Sign-in (one-time Supabase settings)
+The organizer signs in with **e-mail and password** by default. The emailed-code option stays available on the same screen.
+
+**Password sign-in (default).** Works once the Email provider is on (Authentication -> Providers -> Email).
+- For a family pilot you can switch **Confirm email** off (Authentication -> Providers -> Email). New accounts then sign in immediately and no e-mail is sent. With it on, a new account must open the link in the confirmation e-mail before signing in; the app tells the user so.
+- Passwords need at least 6 characters.
+
+**Emailed code (optional secondary path).**
+1. Supabase dashboard -> Authentication -> Email Templates -> **Magic Link** (and **Confirm signup**).
+2. Make sure each body contains `{{ .Token }}` (for example: `Seu código: {{ .Token }}`).
+3. Authentication -> URL Configuration -> set **Site URL** to the hosted app address (`APP_URL`).
+4. The built-in mail sender is rate limited. For real use, configure custom SMTP (Authentication -> SMTP Settings).
 
 ## 3b. Anonymous sign-in (one-time Supabase setting, required for invite links)
 Relatives join by tapping a link; the app creates an individual account for them with Supabase anonymous sign-in.
