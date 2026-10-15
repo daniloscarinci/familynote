@@ -20,6 +20,7 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
   final createdNames = <String>[];
   Object? createError;
   Object? currentError;
+  Object? membersError;
 
   @override
   String? get currentUserId => userId;
@@ -54,5 +55,8 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
   }
 
   @override
-  Future<List<Member>> members(String workspaceId) async => List.of(_members);
+  Future<List<Member>> members(String workspaceId) async {
+    if (membersError != null) throw membersError!;
+    return List.of(_members);
+  }
 }

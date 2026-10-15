@@ -163,15 +163,15 @@ void main() {
       expect(find.text('Membro da família'), findsOneWidget);
     });
 
-    testWidgets('admin invites: WhatsApp and copy buttons with the join link', (t) async {
+    testWidgets('admin: invite is ready on open, no extra tap', (t) async {
       final opened = <Uri>[];
-      await t.pumpWidget(screen(repoWith(Role.admin), opened));
+      final repo = repoWith(Role.admin);
+      await t.pumpWidget(screen(repo, opened));
       await t.pumpAndSettle();
-      expect(find.text('Enviar pelo WhatsApp'), findsNothing);
-      await t.tap(find.text('Convidar alguém'));
-      await t.pumpAndSettle();
+      expect(repo.invitations, ['TOKEN0']);
       expect(find.text('Enviar pelo WhatsApp'), findsOneWidget);
       expect(find.text('Copiar link'), findsOneWidget);
+      expect(find.text('Mande este link. Quem abrir entra na sua família.'), findsOneWidget);
       expect(t.getSize(find.byKey(const Key('btn-whatsapp'))).height, greaterThanOrEqualTo(56));
       expect(t.getSize(find.byKey(const Key('btn-copy'))).height, greaterThanOrEqualTo(56));
       expect(t.widget<SelectableText>(find.byKey(const Key('invite-link'), skipOffstage: false)).data,
@@ -181,6 +181,32 @@ void main() {
       await t.pumpAndSettle();
       expect(opened.single.host, 'wa.me');
       expect(opened.single.queryParameters['text'], contains('https://familia.exemplo.com/#/join/TOKEN0'));
+    });
+
+    testWidgets('Convidar alguem makes a new link', (t) async {
+      final repo = repoWith(Role.admin);
+      await t.pumpWidget(screen(repo, []));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Convidar alguém'));
+      await t.tap(find.text('Convidar alguém'));
+      await t.pumpAndSettle();
+      expect(repo.invitations, ['TOKEN0', 'TOKEN1']);
+      expect(t.widget<SelectableText>(find.byKey(const Key('invite-link'), skipOffstage: false)).data,
+          'https://familia.exemplo.com/#/join/TOKEN1');
+    });
+
+    testWidgets('members load error shows plain message and retry works', (t) async {
+      final repo = repoWith(Role.admin)..membersError = Exception('boom');
+      await t.pumpWidget(screen(repo, []));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('load-error')), findsOneWidget);
+      expect(find.text('Tentar de novo'), findsOneWidget);
+      expect(find.text('Enviar pelo WhatsApp'), findsNothing);
+      repo.membersError = null;
+      await t.tap(find.text('Tentar de novo'));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('load-error')), findsNothing);
+      expect(find.text('Enviar pelo WhatsApp'), findsOneWidget);
     });
 
     testWidgets('copy puts the link on the clipboard', (t) async {
@@ -194,8 +220,6 @@ void main() {
       addTearDown(() => t.binding.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, null));
       await t.pumpWidget(screen(repoWith(Role.admin), []));
-      await t.pumpAndSettle();
-      await t.tap(find.text('Convidar alguém'));
       await t.pumpAndSettle();
       await t.tap(find.text('Copiar link'));
       await t.pumpAndSettle();

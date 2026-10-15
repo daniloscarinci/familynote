@@ -26,10 +26,45 @@ class FamilyScreen extends StatefulWidget {
 }
 
 class _FamilyScreenState extends State<FamilyScreen> {
-  late final Future<List<Member>> _members = widget.repo.members(widget.workspaceId);
+  List<Member> _members = const [];
+  bool _loading = true;
+  String? _loadError;
   String? _link;
   String? _error;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  bool get _isAdmin => _members
+      .any((m) => m.userId == widget.repo.currentUserId && m.role == Role.admin);
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final m = await widget.repo.members(widget.workspaceId);
+      if (!mounted) return;
+      setState(() {
+        _members = m;
+        _loading = false;
+      });
+      // The invite is ready as soon as the screen opens: no extra tap.
+      if (_isAdmin && _link == null) await _invitePerson();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = friendlyMessage(e,
+            fallback: 'Não foi possível ver a sua família agora. Tente de novo.');
+      });
+    }
+  }
 
   Future<void> _invitePerson() async {
     setState(() {
@@ -76,66 +111,73 @@ class _FamilyScreenState extends State<FamilyScreen> {
     }
   }
 
+  Widget _inviteSection() {
+    final big = ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (_link == null && _busy) const Center(child: CircularProgressIndicator()),
+      if (_link != null) ...[
+        Text('Mande este link. Quem abrir entra na sua família.',
+            key: const Key('invite-hint'), style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          key: const Key('btn-whatsapp'),
+          onPressed: _whatsapp,
+          icon: const Icon(Icons.send),
+          label: const Text('Enviar pelo WhatsApp'),
+          style: big,
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          key: const Key('btn-copy'),
+          onPressed: _copy,
+          icon: const Icon(Icons.copy),
+          label: const Text('Copiar link'),
+          style: big,
+        ),
+        const SizedBox(height: 12),
+        SelectableText(_link!, key: const Key('invite-link')),
+        const SizedBox(height: 16),
+      ],
+      if (_error != null) ...[
+        Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        const SizedBox(height: 12),
+      ],
+      OutlinedButton(
+        key: const Key('btn-invite'),
+        onPressed: _busy ? null : _invitePerson,
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(64)),
+        child: const Text('Convidar alguém'),
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Família')),
-      body: FutureBuilder<List<Member>>(
-        future: _members,
-        builder: (c, snap) {
-          final members = snap.data ?? const <Member>[];
-          final isAdmin = members.any(
-              (m) => m.userId == widget.repo.currentUserId && m.role == Role.admin);
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (snap.connectionState != ConnectionState.done)
-                const Center(child: CircularProgressIndicator()),
-              for (final m in members)
-                ListTile(
-                  minVerticalPadding: 12,
-                  leading: const Icon(Icons.person),
-                  title: Text(_name(m)),
-                  subtitle: Text(roleLabel(m.role)),
-                ),
-              const SizedBox(height: 16),
-              if (isAdmin) ...[
-                ElevatedButton(
-                  key: const Key('btn-invite'),
-                  onPressed: _busy ? null : _invitePerson,
-                  style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-                  child: const Text('Convidar alguém'),
-                ),
-                if (_link != null) ...[
-                  const SizedBox(height: 16),
-                  const Text('Escolha como enviar o convite. Ele vale por 7 dias.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    key: const Key('btn-whatsapp'),
-                    onPressed: _whatsapp,
-                    icon: const Icon(Icons.send),
-                    label: const Text('Enviar pelo WhatsApp'),
-                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    key: const Key('btn-copy'),
-                    onPressed: _copy,
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copiar link'),
-                    style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-                  ),
-                  const SizedBox(height: 12),
-                  SelectableText(_link!, key: const Key('invite-link')),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                ],
-              ],
-            ],
-          );
-        },
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_loading) const Center(child: CircularProgressIndicator()),
+          if (_loadError != null) ...[
+            Text(_loadError!, key: const Key('load-error')),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              key: const Key('btn-retry'),
+              onPressed: _load,
+              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
+              child: const Text('Tentar de novo'),
+            ),
+          ],
+          if (_isAdmin) ...[_inviteSection(), const SizedBox(height: 24)],
+          for (final m in _members)
+            ListTile(
+              minVerticalPadding: 12,
+              leading: const Icon(Icons.person),
+              title: Text(_name(m)),
+              subtitle: Text(roleLabel(m.role)),
+            ),
+        ],
       ),
     );
   }
