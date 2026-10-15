@@ -9,15 +9,31 @@ class FakeNoteRepository implements NoteRepository {
   DateTime _now() => DateTime(2026, 1, 1).add(Duration(seconds: _tick++));
 
   @override
-  Future<Note> create({required String title, required String body, bool isPrivate = true}) async {
-    final note = Note(id: 'n${_n++}', title: title, body: body, isPrivate: isPrivate, updatedAt: _now());
+  Future<Note> create(
+      {required String title,
+      required String body,
+      bool isPrivate = true,
+      String? categoryName}) async {
+    final note = Note(
+        id: 'n${_n++}',
+        title: title,
+        body: body,
+        isPrivate: isPrivate,
+        updatedAt: _now(),
+        category: categoryName);
     _notes[note.id] = note;
     return note;
   }
 
   @override
-  Future<Note> update(String id, {String? title, String? body, bool? isPrivate}) async {
-    final next = _notes[id]!.copyWith(title: title, body: body, isPrivate: isPrivate, updatedAt: _now());
+  Future<Note> update(String id,
+      {String? title, String? body, bool? isPrivate, String? categoryName}) async {
+    final next = _notes[id]!.copyWith(
+        title: title,
+        body: body,
+        isPrivate: isPrivate,
+        category: categoryName,
+        updatedAt: _now());
     _notes[id] = next;
     return next;
   }
@@ -46,7 +62,12 @@ class FakeNoteRepository implements NoteRepository {
   Future<void> restore(String id) async {
     final n = _notes[id]!;
     _notes[id] = Note(
-        id: n.id, title: n.title, body: n.body, isPrivate: n.isPrivate, updatedAt: _now());
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        isPrivate: n.isPrivate,
+        updatedAt: _now(),
+        category: n.category);
   }
 
   @override

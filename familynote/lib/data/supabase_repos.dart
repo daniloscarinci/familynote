@@ -12,7 +12,10 @@ Note _note(Map<String, dynamic> r) => Note(
       isPrivate: r['visibility'] == 'private',
       updatedAt: DateTime.parse(r['updated_at'] as String),
       deletedAt: r['deleted_at'] == null ? null : DateTime.parse(r['deleted_at'] as String),
+      category: (r['categories'] as Map<String, dynamic>?)?['name'] as String?,
     );
+
+const _noteColumns = '*, categories(name)';
 
 class SupabaseNoteRepository implements NoteRepository {
   SupabaseNoteRepository(this._db, this.workspaceId);
@@ -21,27 +24,70 @@ class SupabaseNoteRepository implements NoteRepository {
 
   String get _me => _db.auth.currentUser!.id;
 
+  final _categoryIds = <String, String>{};
+
+  /// Finds or creates the topic row by name. Returns null when the person
+  /// may not write categories (or offline): the note is then saved without one.
+  Future<String?> _categoryId(String? name) async {
+    if (name == null || name.isEmpty) return null;
+    final cached = _categoryIds[name];
+    if (cached != null) return cached;
+    try {
+      final found = await _db
+          .from('categories')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .eq('name', name)
+          .limit(1);
+      String? id;
+      if (found.isNotEmpty) {
+        id = found.first['id'] as String;
+      } else {
+        final r = await _db
+            .from('categories')
+            .insert({'workspace_id': workspaceId, 'name': name})
+            .select('id')
+            .single();
+        id = r['id'] as String;
+      }
+      _categoryIds[name] = id;
+      return id;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
-  Future<Note> create({required String title, required String body, bool isPrivate = true}) async {
+  Future<Note> create(
+      {required String title,
+      required String body,
+      bool isPrivate = true,
+      String? categoryName}) async {
+    final categoryId = await _categoryId(categoryName);
     final r = await _db.from('notes').insert({
       'workspace_id': workspaceId,
       'owner_id': _me,
       'title': title,
       'body': body,
       'visibility': isPrivate ? 'private' : 'workspace',
-    }).select().single();
+      'category_id': ?categoryId,
+    }).select(_noteColumns).single();
     return _note(r);
   }
 
   @override
-  Future<Note> update(String id, {String? title, String? body, bool? isPrivate}) async {
+  Future<Note> update(String id,
+      {String? title, String? body, bool? isPrivate, String? categoryName}) async {
+    final categoryId = await _categoryId(categoryName);
     final patch = <String, dynamic>{
       'updated_by': _me,
       'title': ?title,
       'body': ?body,
       if (isPrivate != null) 'visibility': isPrivate ? 'private' : 'workspace',
+      'category_id': ?categoryId,
     };
-    final r = await _db.from('notes').update(patch).eq('id', id).select().single();
+    final r =
+        await _db.from('notes').update(patch).eq('id', id).select(_noteColumns).single();
     return _note(r);
   }
 
@@ -49,7 +95,7 @@ class SupabaseNoteRepository implements NoteRepository {
   Future<List<Note>> recent({int limit = 20}) async {
     final r = await _db
         .from('notes')
-        .select()
+        .select(_noteColumns)
         .eq('workspace_id', workspaceId)
         .isFilter('deleted_at', null)
         .order('updated_at', ascending: false)
@@ -61,7 +107,7 @@ class SupabaseNoteRepository implements NoteRepository {
   Future<List<Note>> search(String query) async {
     final r = await _db
         .from('notes')
-        .select()
+        .select(_noteColumns)
         .eq('workspace_id', workspaceId)
         .isFilter('deleted_at', null)
         .textSearch('fts', query, config: 'portuguese')
@@ -82,7 +128,7 @@ class SupabaseNoteRepository implements NoteRepository {
   Future<List<Note>> trash() async {
     final r = await _db
         .from('notes')
-        .select()
+        .select(_noteColumns)
         .eq('workspace_id', workspaceId)
         .not('deleted_at', 'is', null)
         .eq('owner_id', _me);

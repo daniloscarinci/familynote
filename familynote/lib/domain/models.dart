@@ -7,6 +7,9 @@ class Note {
   final bool isPrivate;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+
+  /// Topic name (e.g. "Saúde"), chosen by the organizer; null when unknown.
+  final String? category;
   const Note({
     required this.id,
     required this.title,
@@ -14,9 +17,10 @@ class Note {
     this.isPrivate = true,
     required this.updatedAt,
     this.deletedAt,
+    this.category,
   });
 
-  Note copyWith({String? title, String? body, bool? isPrivate, DateTime? updatedAt, DateTime? deletedAt}) =>
+  Note copyWith({String? title, String? body, bool? isPrivate, DateTime? updatedAt, DateTime? deletedAt, String? category}) =>
       Note(
         id: id,
         title: title ?? this.title,
@@ -24,6 +28,7 @@ class Note {
         isPrivate: isPrivate ?? this.isPrivate,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt ?? this.deletedAt,
+        category: category ?? this.category,
       );
 }
 

@@ -1,8 +1,10 @@
 import 'models.dart';
 
 abstract class NoteRepository {
-  Future<Note> create({required String title, required String body, bool isPrivate = true});
-  Future<Note> update(String id, {String? title, String? body, bool? isPrivate});
+  Future<Note> create(
+      {required String title, required String body, bool isPrivate = true, String? categoryName});
+  Future<Note> update(String id,
+      {String? title, String? body, bool? isPrivate, String? categoryName});
   Future<List<Note>> recent({int limit = 20});
   Future<List<Note>> search(String query);
   Future<void> softDelete(String id);
