@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/messages.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../data/auth_repository.dart';
 
 enum _Mode { signIn, create, code }
@@ -21,16 +23,6 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _busy = false;
   bool _showPassword = false;
   String? _error;
-
-  static const _bigText = TextStyle(fontSize: 18);
-  static final _bigButton = ElevatedButton.styleFrom(
-    minimumSize: const Size.fromHeight(56),
-    textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-  );
-  static final _bigTextButton = TextButton.styleFrom(
-    minimumSize: const Size.fromHeight(56),
-    textStyle: const TextStyle(fontSize: 18),
-  );
 
   @override
   void dispose() {
@@ -101,110 +93,114 @@ class _SignInScreenState extends State<SignInScreen> {
         'Código incorreto ou vencido. Tente de novo.');
   }
 
+  static const _gap = SizedBox(height: kButtonGap);
+
   Widget _passwordBody() {
     final creating = _mode == _Mode.create;
     return AutofillGroup(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        TextField(
-          key: const Key('email'),
-          controller: _email,
-          style: _bigText,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(labelText: 'E-mail'),
+        LabeledField(
+          label: 'E-mail',
+          child: TextField(
+            key: const Key('email'),
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+          ),
         ),
-        const SizedBox(height: 16),
-        TextField(
-          key: const Key('password'),
-          controller: _password,
-          style: _bigText,
-          obscureText: !_showPassword,
-          autofillHints: [creating ? AutofillHints.newPassword : AutofillHints.password],
-          decoration: const InputDecoration(labelText: 'Senha'),
-          onSubmitted: (_) => _busy ? null : _submitPassword(),
+        _gap,
+        LabeledField(
+          label: 'Senha',
+          child: TextField(
+            key: const Key('password'),
+            controller: _password,
+            obscureText: !_showPassword,
+            autofillHints: [creating ? AutofillHints.newPassword : AutofillHints.password],
+            onSubmitted: (_) => _busy ? null : _submitPassword(),
+          ),
         ),
-        const SizedBox(height: 8),
+        _gap,
         TextButton(
           key: const Key('show-password'),
           onPressed: () => setState(() => _showPassword = !_showPassword),
-          style: _bigTextButton,
           child: Text(_showPassword ? 'Esconder senha' : 'Mostrar senha'),
         ),
-        const SizedBox(height: 8),
-        ElevatedButton(
+        _gap,
+        ..._errorBlock(),
+        BigButton(
           key: const Key('primary'),
           onPressed: _busy ? null : _submitPassword,
-          style: _bigButton,
-          child: Text(_busy ? 'Aguarde...' : (creating ? 'Criar conta' : 'Entrar')),
+          label: _busy ? 'Aguarde...' : (creating ? 'Criar conta' : 'Entrar'),
         ),
-        const SizedBox(height: 8),
+        _gap,
         TextButton(
           key: const Key('toggle-create'),
           onPressed: _busy ? null : () => _setMode(creating ? _Mode.signIn : _Mode.create),
-          style: _bigTextButton,
           child: Text(creating ? 'Já tenho conta' : 'Criar minha conta'),
         ),
-        const SizedBox(height: 24),
-        const Divider(),
-        const SizedBox(height: 8),
-        OutlinedButton(
+        const SizedBox(height: kSectionSpacing),
+        BigButton(
           key: const Key('use-code'),
+          outline: true,
           onPressed: _busy ? null : () => _setMode(_Mode.code),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(56),
-            textStyle: const TextStyle(fontSize: 18),
-          ),
-          child: const Text('Prefiro receber um código por e-mail'),
+          label: 'Prefiro receber um código por e-mail',
         ),
       ]),
     );
   }
 
+  List<Widget> _errorBlock() => [
+        if (_error != null) ...[
+          InlineMessage(_error!, kind: MessageKind.error, textKey: const Key('error')),
+          _gap,
+        ],
+      ];
+
   Widget _codeBody() {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      TextField(
-        controller: _email,
-        enabled: !_codeSent,
-        style: _bigText,
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [AutofillHints.email],
-        decoration: const InputDecoration(labelText: 'Seu e-mail'),
+      LabeledField(
+        label: 'Seu e-mail',
+        child: TextField(
+          controller: _email,
+          enabled: !_codeSent,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+        ),
       ),
-      const SizedBox(height: 16),
-      if (!_codeSent)
-        ElevatedButton(
+      _gap,
+      if (!_codeSent) ...[
+        ..._errorBlock(),
+        BigButton(
           onPressed: _busy ? null : _send,
-          style: _bigButton,
-          child: Text(_busy ? 'Aguarde...' : 'Enviar código'),
-        )
-      else ...[
-        const Text('Enviamos um código para o seu e-mail.', style: _bigText),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _code,
-          style: _bigText,
-          keyboardType: TextInputType.number,
-          maxLength: 8,
-          decoration: const InputDecoration(labelText: 'Código de 6 números'),
+          label: _busy ? 'Aguarde...' : 'Enviar código',
         ),
-        const SizedBox(height: 8),
-        ElevatedButton(
+      ] else ...[
+        const InlineMessage('Enviamos um código para o seu e-mail.'),
+        _gap,
+        LabeledField(
+          label: 'Código de 6 números',
+          child: TextField(
+            controller: _code,
+            keyboardType: TextInputType.number,
+            maxLength: 8,
+          ),
+        ),
+        _gap,
+        ..._errorBlock(),
+        BigButton(
           onPressed: _busy ? null : _verify,
-          style: _bigButton,
-          child: Text(_busy ? 'Aguarde...' : 'Entrar'),
+          label: _busy ? 'Aguarde...' : 'Entrar',
         ),
-        const SizedBox(height: 8),
+        _gap,
         TextButton(
           onPressed: _busy ? null : () => setState(() => _codeSent = false),
-          style: _bigTextButton,
           child: const Text('Usar outro e-mail'),
         ),
       ],
-      const SizedBox(height: 16),
+      _gap,
       TextButton(
         key: const Key('use-password'),
         onPressed: _busy ? null : () => _setMode(_Mode.signIn),
-        style: _bigTextButton,
         child: const Text('Voltar para entrar com senha'),
       ),
     ]);
@@ -212,22 +208,14 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Entrar')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Bem-vindo ao Family Note', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
-          if (_mode == _Mode.code) _codeBody() else _passwordBody(),
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(_error!,
-                key: const Key('error'),
-                style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.error)),
-          ],
-        ],
-      ),
+    return ScreenScaffold(
+      title: 'Entrar',
+      showBack: false,
+      children: [
+        Text('Bem-vindo ao Family Note', style: Theme.of(context).textTheme.titleMedium),
+        _gap,
+        if (_mode == _Mode.code) _codeBody() else _passwordBody(),
+      ],
     );
   }
 }

@@ -55,14 +55,14 @@ class MissingConfigApp extends StatelessWidget {
     return MaterialApp(
       theme: buildTheme(),
       home: const Scaffold(
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(kScreenPadding),
             child: Text(
               'O aplicativo ainda não está configurado.\n\n'
               'Faltam os dados de conexão (SUPABASE_URL e SUPABASE_ANON_KEY). '
               'Peça a quem instalou o aplicativo para configurá-los.',
-              style: TextStyle(fontSize: 20),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, height: 1.4),
             ),
           ),
         ),

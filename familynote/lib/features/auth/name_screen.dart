@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/messages.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../data/profile_repository.dart';
 
 /// One question: "Qual é o seu nome?". Saved to the profile other members see.
@@ -48,39 +50,32 @@ class _NameScreenState extends State<NameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 24),
-            Text('Qual é o seu nome?', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 24),
-            TextField(
-              key: const Key('display-name'),
-              controller: _name,
-              autofocus: true,
-              textCapitalization: TextCapitalization.words,
-              style: const TextStyle(fontSize: 24),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _save(),
-              decoration: const InputDecoration(hintText: 'Escreva aqui'),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _busy ? null : _save,
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-              child: const Text('Continuar'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!,
-                  key: const Key('error'),
-                  style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.error)),
-            ],
-          ],
+    return ScreenScaffold(
+      title: 'Qual é o seu nome?',
+      showBack: false,
+      children: [
+        LabeledField(
+          label: 'O seu nome',
+          child: TextField(
+            key: const Key('display-name'),
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _save(),
+            decoration: const InputDecoration(hintText: 'Escreva aqui'),
+          ),
         ),
-      ),
+        const SizedBox(height: kButtonGap),
+        if (_error != null) ...[
+          InlineMessage(_error!, kind: MessageKind.error, textKey: const Key('error')),
+          const SizedBox(height: kButtonGap),
+        ],
+        BigButton(
+          label: 'Continuar',
+          onPressed: _busy ? null : _save,
+        ),
+      ],
     );
   }
 }

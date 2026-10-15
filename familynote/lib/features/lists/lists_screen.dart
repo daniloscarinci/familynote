@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/models.dart';
 import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
@@ -16,6 +18,8 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
   final _text = TextEditingController();
   List<ShoppingItem> _items = [];
   String? _message;
+  String? _added;
+  bool _loaded = false;
 
   @override
   void initState() {
@@ -31,7 +35,12 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
 
   Future<void> _load() async {
     final i = await widget.repo.items(widget.list.id);
-    if (mounted) setState(() => _items = i);
+    if (mounted) {
+      setState(() {
+        _items = i;
+        _loaded = true;
+      });
+    }
   }
 
   /// Accepts one item or a whole pasted list; the organizer sorts it out.
@@ -43,28 +52,22 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
       await widget.repo.addItem(widget.list.id, e.text);
     }
     _text.clear();
-    _message = r.shopping.isEmpty ? 'Isso já estava na lista.' : null;
+    final n = r.shopping.length;
+    _message = n == 0 ? 'Isso já estava na lista.' : null;
+    _added = n == 0 ? null : (n == 1 ? '1 item adicionado.' : '$n itens adicionados.');
     await _load();
   }
 
-  Widget _row(ShoppingItem i) => CheckboxListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(i.text,
-            style: TextStyle(
-                fontSize: 20, decoration: i.checked ? TextDecoration.lineThrough : null)),
-        value: i.checked,
+  Widget _row(ShoppingItem i) => BigCheckRow(
+        label: i.text,
+        checked: i.checked,
         onChanged: (v) async {
-          await widget.repo.setChecked(i.id, v ?? false);
+          await widget.repo.setChecked(i.id, v);
           await _load();
         },
       );
 
-  Widget _header(String text, {Key? key}) => Padding(
-        key: key,
-        padding: const EdgeInsets.only(top: 16, bottom: 4),
-        child: Text(text, style: Theme.of(context).textTheme.titleLarge),
-      );
+  Widget _header(String text, {Key? key}) => SectionTitle(text, key: key);
 
   List<Widget> _groups() {
     final open = _items.where((i) => !i.checked).toList();
@@ -90,39 +93,30 @@ class _ListDetailScreenState extends State<ListDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.list.name)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-              child: TextField(
-                controller: _text,
-                minLines: 1,
-                maxLines: 4,
-                keyboardType: TextInputType.multiline,
-                decoration: const InputDecoration(
-                  labelText: 'Novo item',
-                  helperText: 'Pode colar a lista inteira.',
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: _add,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 56)),
-              child: const Text('Adicionar'),
-            ),
-          ]),
-          if (_message != null) ...[
-            const SizedBox(height: 8),
-            Text(_message!, key: const Key('list-message')),
-          ],
-          const SizedBox(height: 8),
-          Expanded(child: ListView(children: _groups())),
-        ]),
-      ),
+    return ScreenScaffold(
+      title: widget.list.name,
+      children: [
+        LabeledField(
+          label: 'Novo item',
+          helper: 'Pode colar a lista inteira.',
+          child: TextField(
+            controller: _text,
+            minLines: 1,
+            maxLines: 4,
+            keyboardType: TextInputType.multiline,
+          ),
+        ),
+        const SizedBox(height: kButtonGap),
+        BigButton(label: 'Adicionar', icon: Icons.add, onPressed: _add),
+        const SizedBox(height: kButtonGap),
+        if (_message != null)
+          InlineMessage(_message!, textKey: const Key('list-message')),
+        if (_added != null) InlineMessage(_added!, kind: MessageKind.success),
+        if (_loaded && _items.isEmpty)
+          Text("Ainda não há nada aqui. Escreva um item e toque em 'Adicionar'.",
+              style: Theme.of(context).textTheme.bodyLarge),
+        ..._groups(),
+      ],
     );
   }
 }
@@ -160,44 +154,35 @@ class _ListsScreenState extends State<ListsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Listas')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _newList,
-              icon: const Icon(Icons.add),
-              label: const Text('Nova lista'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: FutureBuilder<List<ShoppingList>>(
-              future: _future,
-              builder: (c, snap) {
-                final lists = snap.data ?? const <ShoppingList>[];
-                if (lists.isEmpty) {
-                  return const Center(child: Text('Nenhuma lista ainda. Toque em "Nova lista".'));
-                }
-                return ListView.separated(
-                  itemCount: lists.length,
-                  separatorBuilder: (_, _) => const Divider(),
-                  itemBuilder: (_, i) => ListTile(
-                    minVerticalPadding: 16,
-                    title: Text(lists[i].name),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _open(lists[i]),
-                  ),
-                );
-              },
-            ),
-          ),
-        ]),
-      ),
+    return ScreenScaffold(
+      title: 'Listas',
+      children: [
+        BigButton(label: 'Nova lista', icon: Icons.add, height: 72, onPressed: _newList),
+        const SizedBox(height: kButtonGap),
+        FutureBuilder<List<ShoppingList>>(
+          future: _future,
+          builder: (c, snap) {
+            final lists = snap.data ?? const <ShoppingList>[];
+            if (lists.isEmpty) {
+              return Text('Nenhuma lista ainda. Toque em "Nova lista".',
+                  style: Theme.of(context).textTheme.bodyLarge);
+            }
+            return Column(children: [
+              for (final l in lists) ...[
+                BigButton(
+                  label: l.name,
+                  icon: Icons.chevron_right,
+                  outline: true,
+                  height: 72,
+                  alignStart: true,
+                  onPressed: () => _open(l),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ]);
+          },
+        ),
+      ],
     );
   }
 }
@@ -222,22 +207,23 @@ class _NameDialogState extends State<_NameDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Nova lista'),
-      content: TextField(
-        controller: _c,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: 'Nome da lista'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LabeledField(
+              label: 'Nome da lista',
+              child: TextField(controller: _c, autofocus: true),
+            ),
+            const SizedBox(height: kSectionSpacing),
+            BigButton(label: 'Criar', onPressed: () => Navigator.pop(context, _c.text)),
+            const SizedBox(height: kButtonGap),
+            BigButton(
+                label: 'Cancelar', outline: true, onPressed: () => Navigator.pop(context)),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(minimumSize: const Size(56, 56)),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, _c.text),
-          child: const Text('Criar'),
-        ),
-      ],
     );
   }
 }

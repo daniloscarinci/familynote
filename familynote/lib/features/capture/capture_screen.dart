@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
 import 'preview_screen.dart';
@@ -37,43 +39,38 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Escrever tudo aqui')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          Expanded(
-            child: TextField(
-              key: const Key('capture-field'),
-              controller: _text,
-              autofocus: true,
-              maxLines: null,
-              expands: true,
-              keyboardType: TextInputType.multiline,
-              textAlignVertical: TextAlignVertical.top,
-              style: const TextStyle(fontSize: 20),
-              decoration: const InputDecoration(
-                hintText: 'Escreva ou cole tudo: compras, lembretes, recados...',
-                alignLabelWithHint: true,
-              ),
+    return ScreenScaffold(
+      title: 'Escrever tudo aqui',
+      children: [
+        LabeledField(
+          label: 'Escreva ou cole tudo',
+          child: TextField(
+            key: const Key('capture-field'),
+            controller: _text,
+            autofocus: true,
+            minLines: 8,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            textAlignVertical: TextAlignVertical.top,
+            decoration: const InputDecoration(
+              hintText: 'Escreva ou cole tudo: compras, lembretes, recados...',
+              alignLabelWithHint: true,
             ),
           ),
-          if (_hint != null) ...[
-            const SizedBox(height: 8),
-            Text(_hint!, key: const Key('capture-hint')),
-          ],
-          const SizedBox(height: 12),
-          ElevatedButton(
-            key: const Key('btn-organize'),
-            onPressed: _organize,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(72),
-              textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-            ),
-            child: const Text('Organizar'),
-          ),
-        ]),
-      ),
+        ),
+        const SizedBox(height: kButtonGap),
+        if (_hint != null) ...[
+          InlineMessage(_hint!, kind: MessageKind.error, textKey: const Key('capture-hint')),
+          const SizedBox(height: kButtonGap),
+        ],
+        BigButton(
+          key: const Key('btn-organize'),
+          label: 'Organizar',
+          icon: Icons.auto_fix_high,
+          height: 80,
+          onPressed: _organize,
+        ),
+      ],
     );
   }
 }

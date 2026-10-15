@@ -10,3 +10,12 @@ Future<ShoppingList> defaultShoppingList(ListRepository repo) async {
   if (all.isEmpty) return repo.createList(defaultListName);
   return all.firstWhere((l) => l.name == defaultListName, orElse: () => all.first);
 }
+
+/// Open (not yet bought) items on the shopping list, without creating it.
+/// 0 when the family has no list yet.
+Future<int> openShoppingItemCount(ListRepository repo) async {
+  final all = await repo.lists();
+  if (all.isEmpty) return 0;
+  final list = all.firstWhere((l) => l.name == defaultListName, orElse: () => all.first);
+  return (await repo.items(list.id)).where((i) => !i.checked).length;
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/surface.dart';
 import 'package:familynote/app/app.dart';
 import 'package:familynote/app/providers.dart';
 import 'package:familynote/core/messages.dart';
@@ -36,6 +37,7 @@ Widget _app(
 
 void main() {
   testWidgets('signed out shows the sign-in screen', (t) async {
+    tall(t);
     await t.pumpWidget(_app(FakeAuthRepository(), FakeWorkspaceRepository()));
     await t.pumpAndSettle();
     expect(find.text('Criar minha conta'), findsOneWidget);
@@ -43,6 +45,7 @@ void main() {
   });
 
   testWidgets('sign in, then Home with three big buttons and no bottom bar', (t) async {
+    tall(t);
     final ws = FakeWorkspaceRepository(
       workspaceId: 'ws1',
       members: [const Member(userId: 'me', displayName: '', role: Role.admin)],
@@ -67,6 +70,7 @@ void main() {
 
   group('invite on Home', () {
     testWidgets('admin sees the button and it opens Familia with the invite ready', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository(
         workspaceId: 'ws1',
         members: [const Member(userId: 'me', displayName: '', role: Role.admin)],
@@ -80,6 +84,7 @@ void main() {
     });
 
     testWidgets('non-admin does not see it', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository(
         workspaceId: 'ws1',
         members: [const Member(userId: 'me', displayName: '', role: Role.adult)],
@@ -93,6 +98,7 @@ void main() {
 
   group('automatic family', () {
     testWidgets('signed in without a family creates one silently', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository();
       await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
       await t.pumpAndSettle();
@@ -102,6 +108,7 @@ void main() {
     });
 
     testWidgets('failure shows a plain retry screen, retry succeeds', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository()..createError = Exception('SocketException: Failed host lookup');
       await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
       await t.pumpAndSettle();
@@ -117,6 +124,7 @@ void main() {
 
   group('join by link', () {
     testWidgets('signed out with a token: anonymous sign-in, accept, name, Home', (t) async {
+    tall(t);
       final auth = FakeAuthRepository();
       final ws = FakeWorkspaceRepository(userId: 'me')..invitations.add('TOK');
       final profiles = FakeProfileRepository();
@@ -137,6 +145,7 @@ void main() {
     });
 
     testWidgets('already signed in with a token just accepts it', (t) async {
+    tall(t);
       final auth = FakeAuthRepository(signedIn: true);
       final ws = FakeWorkspaceRepository()..invitations.add('TOK');
       await t.pumpWidget(_app(auth, ws, joinToken: 'TOK'));
@@ -148,6 +157,7 @@ void main() {
     });
 
     testWidgets('bad link shows a friendly message and a way to continue', (t) async {
+    tall(t);
       final auth = FakeAuthRepository(signedIn: true);
       final ws = FakeWorkspaceRepository();
       await t.pumpWidget(_app(auth, ws, joinToken: 'WRONG'));
@@ -160,6 +170,7 @@ void main() {
     });
 
     testWidgets('anonymous sign-in failure is explained in plain words', (t) async {
+    tall(t);
       final auth = FakeAuthRepository()..anonymousError = Exception('Anonymous sign-ins are disabled');
       await t.pumpWidget(_app(auth, FakeWorkspaceRepository(), joinToken: 'TOK'));
       await t.pumpAndSettle();
@@ -170,6 +181,7 @@ void main() {
 
   group('name screen', () {
     testWidgets('organizer without a name is asked once, then sees Home', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository(workspaceId: 'ws1');
       await t.pumpWidget(
           _app(FakeAuthRepository(signedIn: true), ws, profiles: FakeProfileRepository()));
@@ -183,25 +195,66 @@ void main() {
     });
   });
 
-  group('Mais', () {
-    testWidgets('opens the four-tab area and goes back', (t) async {
+  group('Outras opções', () {
+    testWidgets('lists the plain rows and goes back', (t) async {
+      tall(t);
       final ws = FakeWorkspaceRepository(
         workspaceId: 'ws1',
         members: [const Member(userId: 'me', displayName: 'Ana', role: Role.admin)],
       );
       await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
       await t.pumpAndSettle();
-      await t.tap(find.text('Mais'));
+      await t.tap(find.text('Outras opções'));
       await t.pumpAndSettle();
-      for (final label in ['Notas', 'Listas', 'Família', 'Ajustes']) {
-        expect(find.text(label), findsWidgets);
+      for (final label in ['Procurar', 'Família', 'Letras maiores e menores', 'Sair']) {
+        final row = find.widgetWithText(OutlinedButton, label);
+        expect(row, findsOneWidget, reason: label);
+        expect(t.getSize(row).height, greaterThanOrEqualTo(72), reason: label);
       }
-      await t.tap(find.text('Voltar ao início'));
+      await t.tap(find.text('Voltar'));
       await t.pumpAndSettle();
       expect(find.text('Escrever tudo aqui'), findsOneWidget);
     });
 
+    testWidgets('Letras maiores e menores changes the size of the whole app', (t) async {
+      tall(t);
+      final ws = FakeWorkspaceRepository(workspaceId: 'ws1');
+      await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Outras opções'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Letras maiores e menores'));
+      await t.pumpAndSettle();
+      final before = t.getSize(find.text('Normal')).height;
+      await t.tap(find.text('Enorme'));
+      await t.pumpAndSettle();
+      expect(t.getSize(find.text('Normal')).height, greaterThan(before * 1.8));
+    });
+
+    testWidgets('Sair asks first, then signs out', (t) async {
+      tall(t);
+      final ws = FakeWorkspaceRepository(workspaceId: 'ws1');
+      final auth = FakeAuthRepository(signedIn: true);
+      await t.pumpWidget(_app(auth, ws));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Outras opções'));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(OutlinedButton, 'Sair'));
+      await t.pumpAndSettle();
+      expect(find.text('Quer sair?'), findsOneWidget);
+      await t.tap(find.text('Ficar'));
+      await t.pumpAndSettle();
+      expect(await auth.signedIn.first, isTrue);
+      await t.tap(find.widgetWithText(OutlinedButton, 'Sair'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Sim, sair'));
+      await t.pumpAndSettle();
+      expect(await auth.signedIn.first, isFalse);
+      expect(find.text('Criar minha conta'), findsOneWidget);
+    });
+
     testWidgets('Lista de compras creates "Compras" and opens it', (t) async {
+    tall(t);
       final ws = FakeWorkspaceRepository(workspaceId: 'ws1');
       final lists = FakeListRepository();
       await t.pumpWidget(_app(FakeAuthRepository(signedIn: true), ws, lists: lists));
@@ -214,6 +267,7 @@ void main() {
   });
 
   testWidgets('missing config shows a Portuguese message', (t) async {
+    tall(t);
     await t.pumpWidget(const MissingConfigApp());
     expect(find.textContaining('não está configurado'), findsOneWidget);
   });

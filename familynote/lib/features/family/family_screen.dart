@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../app/providers.dart';
 import '../../core/join_link.dart';
 import '../../core/messages.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../data/workspace_repository.dart';
 import '../../domain/models.dart';
 
@@ -31,6 +33,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
   String? _loadError;
   String? _link;
   String? _error;
+  String? _copied;
   bool _busy = false;
 
   @override
@@ -69,6 +72,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
   Future<void> _invitePerson() async {
     setState(() {
       _error = null;
+      _copied = null;
       _busy = true;
     });
     try {
@@ -106,79 +110,85 @@ class _FamilyScreenState extends State<FamilyScreen> {
 
   Future<void> _copy() async {
     await Clipboard.setData(ClipboardData(text: _link!));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copiado')));
-    }
+    // Stays on screen until the next action, so it is never missed.
+    if (mounted) setState(() => _copied = 'Link copiado');
   }
 
   Widget _inviteSection() {
-    final big = ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (_link == null && _busy) const Center(child: CircularProgressIndicator()),
       if (_link != null) ...[
         Text('Mande este link. Quem abrir entra na sua família.',
             key: const Key('invite-hint'), style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
+        const SizedBox(height: kButtonGap),
+        BigButton(
           key: const Key('btn-whatsapp'),
           onPressed: _whatsapp,
-          icon: const Icon(Icons.send),
-          label: const Text('Enviar pelo WhatsApp'),
-          style: big,
+          icon: Icons.send,
+          label: 'Enviar pelo WhatsApp',
+          height: 80,
         ),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
+        const SizedBox(height: kButtonGap),
+        BigButton(
           key: const Key('btn-copy'),
           onPressed: _copy,
-          icon: const Icon(Icons.copy),
-          label: const Text('Copiar link'),
-          style: big,
+          icon: Icons.copy,
+          label: 'Copiar link',
+          outline: true,
+          height: 72,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: kButtonGap),
+        if (_copied != null) ...[
+          InlineMessage(_copied!, kind: MessageKind.success),
+          const SizedBox(height: kButtonGap),
+        ],
         SelectableText(_link!, key: const Key('invite-link')),
-        const SizedBox(height: 16),
+        const SizedBox(height: kButtonGap),
       ],
       if (_error != null) ...[
-        Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-        const SizedBox(height: 12),
+        InlineMessage(_error!, kind: MessageKind.error),
+        const SizedBox(height: kButtonGap),
       ],
-      OutlinedButton(
+      BigButton(
         key: const Key('btn-invite'),
         onPressed: _busy ? null : _invitePerson,
-        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(64)),
-        child: const Text('Convidar alguém'),
+        label: 'Convidar alguém',
+        outline: true,
+        height: 72,
       ),
     ]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Família')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_loading) const Center(child: CircularProgressIndicator()),
-          if (_loadError != null) ...[
-            Text(_loadError!, key: const Key('load-error')),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              key: const Key('btn-retry'),
-              onPressed: _load,
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-              child: const Text('Tentar de novo'),
-            ),
-          ],
-          if (_isAdmin) ...[_inviteSection(), const SizedBox(height: 24)],
-          for (final m in _members)
-            ListTile(
-              minVerticalPadding: 12,
-              leading: const Icon(Icons.person),
-              title: Text(_name(m)),
-              subtitle: Text(roleLabel(m.role)),
-            ),
+    return ScreenScaffold(
+      title: 'Família',
+      children: [
+        if (_loading) const Center(child: CircularProgressIndicator()),
+        if (_loadError != null) ...[
+          InlineMessage(_loadError!, kind: MessageKind.error, textKey: const Key('load-error')),
+          const SizedBox(height: kButtonGap),
+          BigButton(
+            key: const Key('btn-retry'),
+            onPressed: _load,
+            label: 'Tentar de novo',
+            height: 72,
+          ),
         ],
-      ),
+        if (_isAdmin) ...[_inviteSection(), const SizedBox(height: kSectionSpacing)],
+        if (_members.isNotEmpty) const SectionTitle('Pessoas da família'),
+        for (final m in _members)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              child: ListTile(
+                leading: const Icon(Icons.person, size: 32),
+                title: Text(_name(m)),
+                subtitle: Text(roleLabel(m.role)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

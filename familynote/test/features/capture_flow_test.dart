@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/surface.dart';
 import 'package:familynote/core/theme.dart';
 import 'package:familynote/data/fake_repos.dart';
 import 'package:familynote/features/capture/capture_screen.dart';
@@ -26,6 +27,7 @@ void main() {
   const input = 'Compras:\n- leite\n- 2 bananas\n- pão\nLigar para o médico amanhã';
 
   testWidgets('capture -> preview -> nothing saved until Guardar tudo -> saved', (t) async {
+    tall(t);
     final notes = FakeNoteRepository();
     final lists = FakeListRepository();
     await open(t, notes, lists);
@@ -63,12 +65,13 @@ void main() {
   });
 
   testWidgets('share switch makes the note shared', (t) async {
+    tall(t);
     final notes = FakeNoteRepository();
     await open(t, notes, FakeListRepository());
     await t.enterText(find.byKey(const Key('capture-field')), 'Festa da vovó sábado');
     await t.tap(find.text('Organizar'));
     await t.pumpAndSettle();
-    expect(t.widget<SwitchListTile>(find.byKey(const Key('share-switch'))).value, isFalse);
+    expect(t.widget<Switch>(find.descendant(of: find.byKey(const Key('share-switch')), matching: find.byType(Switch))).value, isFalse);
     await t.tap(find.text('Compartilhar com a família'));
     await t.pumpAndSettle();
     await t.tap(find.text('Guardar tudo'));
@@ -77,6 +80,7 @@ void main() {
   });
 
   testWidgets('Voltar e editar keeps the text and saves nothing', (t) async {
+    tall(t);
     final notes = FakeNoteRepository();
     await open(t, notes, FakeListRepository());
     await t.enterText(find.byKey(const Key('capture-field')), input);
@@ -89,6 +93,7 @@ void main() {
   });
 
   testWidgets('empty text asks to write something', (t) async {
+    tall(t);
     await open(t, FakeNoteRepository(), FakeListRepository());
     await t.tap(find.text('Organizar'));
     await t.pumpAndSettle();
@@ -97,6 +102,7 @@ void main() {
   });
 
   testWidgets('items already on the list are skipped', (t) async {
+    tall(t);
     final lists = FakeListRepository();
     final l = await lists.createList('Compras');
     await lists.addItem(l.id, 'Leite');

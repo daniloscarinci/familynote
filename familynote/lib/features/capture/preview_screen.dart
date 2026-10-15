@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/messages.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
 import 'save_organized.dart';
@@ -40,15 +42,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          content: Text(savedMessage(items: _itemsSaved!, note: widget.result.note != null),
-              style: const TextStyle(fontSize: 20)),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(160, 56)),
-              child: const Text('Ir para o início'),
-            ),
-          ],
+          icon: Icon(Icons.check_circle, size: 48, color: ctx.palette.success),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(savedMessage(items: _itemsSaved!, note: widget.result.note != null),
+                  style: Theme.of(ctx).textTheme.bodyLarge),
+              const SizedBox(height: kSectionSpacing),
+              BigButton(
+                label: 'Ir para o início',
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ]),
+          ),
         ),
       );
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
@@ -68,21 +73,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final theme = Theme.of(context).textTheme;
     final n = r.shopping.length;
     return [
-      Text(n == 1 ? 'Lista de compras (1 item)' : 'Lista de compras ($n itens)',
-          style: theme.titleLarge),
+      SectionTitle(n == 1 ? 'Lista de compras (1 item)' : 'Lista de compras ($n itens)'),
       for (final c in ShoppingCategory.values)
         if (r.shopping.any((e) => e.category == c)) ...[
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 4),
-            child: Text(c.label, style: theme.titleMedium),
+            child: Text(c.label, style: theme.titleSmall),
           ),
           for (final e in r.shopping.where((e) => e.category == c))
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(e.text, style: const TextStyle(fontSize: 20)),
+              child: Text(e.text, style: theme.bodyLarge),
             ),
         ],
-      const SizedBox(height: 24),
+      const SizedBox(height: kSectionSpacing),
     ];
   }
 
@@ -90,63 +94,46 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final note = widget.result.note;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Veja como organizei')),
-      body: Column(children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ..._shoppingSection(context),
-              if (note != null) ...[
-                Text('Nota', style: theme.titleLarge),
-                const SizedBox(height: 8),
-                Text(note.title, style: theme.titleMedium),
-                Text('Assunto: ${note.category.label}', key: const Key('preview-category')),
-                const SizedBox(height: 8),
-                Text(note.body, style: const TextStyle(fontSize: 20)),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  key: const Key('share-switch'),
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Compartilhar com a família',
-                      style: TextStyle(fontSize: 20)),
-                  subtitle: Text(_share ? 'Todos da família vão ver.' : 'Só você vai ver.'),
-                  value: _share,
-                  onChanged: (v) => setState(() => _share = v),
-                ),
-              ],
-            ],
+    return ScreenScaffold(
+      title: 'Veja como organizei',
+      onBack: _saving ? () {} : null,
+      children: [
+        ..._shoppingSection(context),
+        if (note != null) ...[
+          const SectionTitle('Nota'),
+          Text(note.title, style: theme.titleSmall),
+          Text('Assunto: ${note.category.label}', key: const Key('preview-category')),
+          const SizedBox(height: 8),
+          Text(note.body, style: theme.bodyLarge),
+          const SizedBox(height: kButtonGap),
+          BigSwitchRow(
+            key: const Key('share-switch'),
+            title: 'Compartilhar com a família',
+            subtitle: _share ? 'Todos da família vão ver.' : 'Só você vai ver.',
+            value: _share,
+            onChanged: (v) => setState(() => _share = v),
           ),
+        ],
+        const SizedBox(height: kSectionSpacing),
+        if (_error != null) ...[
+          InlineMessage(_error!, kind: MessageKind.error, textKey: const Key('save-error')),
+          const SizedBox(height: kButtonGap),
+        ],
+        BigButton(
+          key: const Key('btn-save-all'),
+          label: 'Guardar tudo',
+          icon: Icons.check,
+          height: 80,
+          onPressed: _saving ? null : _save,
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (_error != null) ...[
-              Text(_error!,
-                  key: const Key('save-error'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              const SizedBox(height: 8),
-            ],
-            ElevatedButton(
-              key: const Key('btn-save-all'),
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(72),
-                textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-              ),
-              child: const Text('Guardar tudo'),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              key: const Key('btn-back-edit'),
-              onPressed: _saving ? null : () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-              child: const Text('Voltar e editar', style: TextStyle(fontSize: 20)),
-            ),
-          ]),
+        const SizedBox(height: kButtonGap),
+        BigButton(
+          key: const Key('btn-back-edit'),
+          label: 'Voltar e editar',
+          outline: true,
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
         ),
-      ]),
+      ],
     );
   }
 }

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/models.dart';
 import '../../domain/repositories.dart';
+import 'greeting.dart';
 
-/// Giant buttons, a small "Mais", and the latest notes.
+/// "1 item", "5 itens" or "Nenhum item".
+String itemCountWords(int n) => n <= 0 ? 'Nenhum item' : (n == 1 ? '1 item' : '$n itens');
+
+/// Hub: big labelled buttons only, then the latest three notes.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -14,6 +20,10 @@ class HomeScreen extends StatefulWidget {
     this.onOpen,
     this.isAdmin = false,
     this.onInvite,
+    this.userName,
+    this.shoppingCount,
+    this.message,
+    this.clock = DateTime.now,
   });
   final NoteRepository notes;
   final VoidCallback onWriteAll;
@@ -26,106 +36,131 @@ class HomeScreen extends StatefulWidget {
   final bool isAdmin;
   final VoidCallback? onInvite;
 
+  /// Shown in the greeting (first name only); "Olá" when null or empty.
+  final String? userName;
+
+  /// Number of open items on the shopping list, shown in words on its button.
+  final Future<int> Function()? shoppingCount;
+
+  /// Plain-words problem shown above the buttons (for example a failed open).
+  final String? message;
+  final DateTime Function() clock;
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final Future<List<Note>> _future = widget.notes.recent(limit: 5);
+  late final Future<List<Note>> _future = widget.notes.recent(limit: 3);
+  late final Future<int?> _count = _loadCount();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Family Note')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _BigButton(
-              key: const Key('btn-write-all'),
-              icon: Icons.edit,
-              label: 'Escrever tudo aqui',
-              onPressed: widget.onWriteAll),
-          const SizedBox(height: 16),
-          _BigButton(
-              key: const Key('btn-shopping'),
-              icon: Icons.shopping_cart,
-              label: 'Lista de compras',
-              onPressed: widget.onShoppingList),
-          const SizedBox(height: 16),
-          _BigButton(
-              key: const Key('btn-family-notes'),
-              icon: Icons.groups,
-              label: 'O que a família escreveu',
-              onPressed: widget.onFamilyNotes),
-          if (widget.isAdmin && widget.onInvite != null) ...[
-            const SizedBox(height: 16),
-            _BigButton(
-                key: const Key('btn-invite-home'),
-                icon: Icons.person_add,
-                label: 'Convidar a família',
-                onPressed: widget.onInvite!),
-          ],
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton(
-              key: const Key('btn-more'),
-              onPressed: widget.onMore,
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(120, 56),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              child: const Text('Mais'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('Notas recentes', style: Theme.of(context).textTheme.titleLarge),
-          FutureBuilder<List<Note>>(
-            future: _future,
-            builder: (c, snap) {
-              final items = snap.data ?? const <Note>[];
-              if (snap.connectionState == ConnectionState.done && items.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Nenhuma nota ainda.'),
-                );
-              }
-              return Column(children: [
-                for (final n in items)
-                  ListTile(
-                    minVerticalPadding: 16,
-                    title: Text(n.title.isEmpty ? '(sem título)' : n.title),
-                    subtitle: Text([
-                      if (n.category != null) n.category!,
-                      n.isPrivate ? 'Só para mim' : 'Compartilhada com a família',
-                    ].join(' · ')),
-                    onTap: () => widget.onOpen?.call(n),
-                  ),
-              ]);
-            },
-          ),
-        ],
-      ),
-    );
+  Future<int?> _loadCount() async {
+    try {
+      return await widget.shoppingCount?.call();
+    } catch (_) {
+      return null; // The button simply shows no count.
+    }
   }
-}
-
-class _BigButton extends StatelessWidget {
-  const _BigButton({super.key, required this.icon, required this.label, required this.onPressed});
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 32),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(88),
-          textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+    final t = Theme.of(context).textTheme;
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(kScreenPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Family Note', style: t.bodySmall),
+              Semantics(
+                header: true,
+                child: Text(greeting(widget.clock(), widget.userName),
+                    key: const Key('greeting'), style: t.titleLarge),
+              ),
+              const SizedBox(height: kSectionSpacing),
+              if (widget.message != null) ...[
+                InlineMessage(widget.message!, kind: MessageKind.error),
+                const SizedBox(height: kButtonGap),
+              ],
+              BigButton(
+                key: const Key('btn-write-all'),
+                icon: Icons.edit,
+                label: 'Escrever tudo aqui',
+                height: 96,
+                onPressed: widget.onWriteAll,
+              ),
+              const SizedBox(height: kButtonGap),
+              FutureBuilder<int?>(
+                future: _count,
+                builder: (c, snap) => BigButton(
+                  key: const Key('btn-shopping'),
+                  icon: Icons.shopping_cart,
+                  label: 'Lista de compras',
+                  caption: snap.data == null ? null : itemCountWords(snap.data!),
+                  outline: true,
+                  height: 80,
+                  onPressed: widget.onShoppingList,
+                ),
+              ),
+              const SizedBox(height: kButtonGap),
+              BigButton(
+                key: const Key('btn-family-notes'),
+                icon: Icons.groups,
+                label: 'O que a família escreveu',
+                outline: true,
+                height: 80,
+                onPressed: widget.onFamilyNotes,
+              ),
+              if (widget.isAdmin && widget.onInvite != null) ...[
+                const SizedBox(height: kButtonGap),
+                BigButton(
+                  key: const Key('btn-invite-home'),
+                  icon: Icons.person_add,
+                  label: 'Convidar a família',
+                  outline: true,
+                  height: 72,
+                  onPressed: widget.onInvite!,
+                ),
+              ],
+              const SizedBox(height: kButtonGap),
+              TextButton(
+                key: const Key('btn-more'),
+                onPressed: widget.onMore,
+                child: const Text('Outras opções'),
+              ),
+              const SizedBox(height: kSectionSpacing),
+              const SectionTitle('Últimas anotações'),
+              FutureBuilder<List<Note>>(
+                future: _future,
+                builder: (c, snap) {
+                  final items = snap.data ?? const <Note>[];
+                  if (snap.connectionState == ConnectionState.done && items.isEmpty) {
+                    return Text(
+                        "Ainda não há nada aqui. Toque em 'Escrever tudo aqui'.",
+                        style: t.bodyLarge);
+                  }
+                  return Column(children: [
+                    for (final n in items) ...[
+                      BigButton(
+                        key: Key('note-${n.id}'),
+                        label: n.title.isEmpty ? '(sem título)' : n.title,
+                        caption: [
+                          if (n.category != null) n.category!,
+                          n.isPrivate ? 'Só para mim' : 'Compartilhada com a família',
+                        ].join(' · '),
+                        outline: true,
+                        height: 72,
+                        alignStart: true,
+                        onPressed: () => widget.onOpen?.call(n),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ]);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

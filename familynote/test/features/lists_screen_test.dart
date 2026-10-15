@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/surface.dart';
 import 'package:familynote/core/theme.dart';
 import 'package:familynote/data/fake_repos.dart';
 import 'package:familynote/features/lists/lists_screen.dart';
 
 void main() {
   testWidgets('add item and check it off', (t) async {
+    tall(t);
     final repo = FakeListRepository();
     final list = await repo.createList('Mercado');
     await t.pumpWidget(MaterialApp(
@@ -24,6 +26,7 @@ void main() {
   });
 
   testWidgets('checked item is struck through and Adicionar is >= 56dp', (t) async {
+    tall(t);
     final repo = FakeListRepository();
     final list = await repo.createList('Mercado');
     await t.pumpWidget(MaterialApp(
@@ -43,6 +46,7 @@ void main() {
 
   testWidgets('items are grouped by aisle in fixed order, sorted, checked ones at the bottom',
       (t) async {
+    tall(t);
     final repo = FakeListRepository();
     t.view.physicalSize = const Size(800, 2000);
     t.view.devicePixelRatio = 1;
@@ -73,6 +77,7 @@ void main() {
   });
 
   testWidgets('pasting a whole list adds items and skips duplicates', (t) async {
+    tall(t);
     final repo = FakeListRepository();
     final list = await repo.createList('Compras');
     await repo.addItem(list.id, 'Leite');

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/models.dart';
 import '../../domain/organizer.dart';
 import '../../domain/repositories.dart';
 
+/// "Procurar": search the notes and filter them by topic.
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key, required this.notes, required this.onNewNote, this.onOpen});
   final NoteRepository notes;
@@ -18,94 +21,88 @@ class _NotesScreenState extends State<NotesScreen> {
   final _search = TextEditingController();
   String? _filter;
 
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   void _run(String q) => setState(() {
         _future = q.trim().isEmpty ? widget.notes.recent() : widget.notes.search(q);
       });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Notas')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: widget.onNewNote,
-              icon: const Icon(Icons.add),
-              label: const Text('Escrever tudo aqui'),
-              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
+    final p = context.palette;
+    return ScreenScaffold(
+      title: 'Procurar',
+      children: [
+        LabeledField(
+          label: 'Procurar nas suas notas',
+          child: TextField(
             controller: _search,
             onChanged: _run,
-            decoration: const InputDecoration(
-              labelText: 'Procurar',
-              prefixIcon: Icon(Icons.search),
-            ),
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.search)),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: FutureBuilder<List<Note>>(
-              future: _future,
-              builder: (c, snap) {
-                final all = snap.data ?? const <Note>[];
-                if (all.isEmpty) {
-                  return const Center(
-                      child: Text('Nenhuma nota ainda. Toque em "Escrever tudo aqui".'));
-                }
-                final topics = <String>[
-                  for (final c in NoteCategory.values)
-                    if (all.any((n) => n.category == c.label)) c.label,
-                ];
-                final items =
-                    _filter == null ? all : all.where((n) => n.category == _filter).toList();
-                return Column(children: [
-                  if (topics.isNotEmpty)
-                    SizedBox(
-                      height: 56,
-                      child: ListView(scrollDirection: Axis.horizontal, children: [
-                        for (final t in [null, ...topics])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: SizedBox(
-                              height: 48,
-                              child: ChoiceChip(
-                                key: Key('chip-${t ?? 'todas'}'),
-                                label: Text(t ?? 'Todas', style: const TextStyle(fontSize: 18)),
-                                selected: _filter == t,
-                                onSelected: (_) => setState(() => _filter = t),
-                              ),
-                            ),
-                          ),
-                      ]),
+        ),
+        const SizedBox(height: kButtonGap),
+        FutureBuilder<List<Note>>(
+          future: _future,
+          builder: (c, snap) {
+            final all = snap.data ?? const <Note>[];
+            if (all.isEmpty) {
+              return Text("Ainda não há nada aqui. Toque em 'Escrever tudo aqui'.",
+                  style: Theme.of(context).textTheme.bodyLarge);
+            }
+            final topics = <String>[
+              for (final c in NoteCategory.values)
+                if (all.any((n) => n.category == c.label)) c.label,
+            ];
+            final items = _filter == null ? all : all.where((n) => n.category == _filter).toList();
+            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (topics.isNotEmpty)
+                Wrap(spacing: 12, runSpacing: 12, children: [
+                  for (final t in [null, ...topics])
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 56),
+                      child: ChoiceChip(
+                        key: Key('chip-${t ?? 'todas'}'),
+                        label: Text(t ?? 'Todas',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: _filter == t ? p.onPrimary : p.primary)),
+                        selected: _filter == t,
+                        onSelected: (_) => setState(() => _filter = t),
+                      ),
                     ),
-                  Expanded(child: _noteList(items)),
-                ]);
-              },
-            ),
-          ),
-        ]),
-      ),
+                ]),
+              const SizedBox(height: kButtonGap),
+              for (final n in items) ...[
+                BigButton(
+                  label: n.title.isEmpty ? '(sem título)' : n.title,
+                  caption: [
+                    if (n.category != null) n.category!,
+                    n.isPrivate ? 'Só para mim' : 'Compartilhada com a família',
+                  ].join(' · '),
+                  outline: true,
+                  height: 72,
+                  alignStart: true,
+                  onPressed: () => widget.onOpen?.call(n),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ]);
+          },
+        ),
+        const SizedBox(height: kSectionSpacing),
+        BigButton(
+          label: 'Escrever tudo aqui',
+          icon: Icons.edit,
+          height: 72,
+          onPressed: widget.onNewNote,
+        ),
+      ],
     );
-  }
-
-  Widget _noteList(List<Note> items) {
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(),
-                  itemBuilder: (_, i) => ListTile(
-                    minVerticalPadding: 16,
-                    title: Text(items[i].title.isEmpty ? '(sem título)' : items[i].title),
-                    subtitle: Text([
-                      if (items[i].category != null) items[i].category!,
-                      items[i].isPrivate ? 'Só para mim' : 'Compartilhada com a família',
-                    ].join(' · ')),
-                    onTap: () => widget.onOpen?.call(items[i]),
-                  ),
-                );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/messages.dart';
+import '../core/theme.dart';
+import '../core/widgets.dart';
 import '../features/auth/name_screen.dart';
 import '../features/auth/sign_in_screen.dart';
 import 'main_flow.dart';
@@ -42,32 +44,18 @@ class _Problem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(message, key: const Key('problem'), style: const TextStyle(fontSize: 22)),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(72)),
-                child: const Text('Tentar de novo'),
-              ),
-              if (onSkip != null) ...[
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: onSkip,
-                  style: TextButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-                  child: const Text('Continuar sem o convite'),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+    return ScreenScaffold(
+      title: 'Algo não funcionou',
+      showBack: false,
+      children: [
+        InlineMessage(message, kind: MessageKind.error, textKey: const Key('problem')),
+        const SizedBox(height: kSectionSpacing),
+        BigButton(label: 'Tentar de novo', icon: Icons.refresh, onPressed: onRetry),
+        if (onSkip != null) ...[
+          const SizedBox(height: kButtonGap),
+          BigButton(label: 'Continuar sem o convite', outline: true, onPressed: onSkip),
+        ],
+      ],
     );
   }
 }

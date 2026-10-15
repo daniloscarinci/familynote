@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/status.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/autosave.dart';
 import '../../domain/models.dart';
 import '../../domain/organizer.dart';
@@ -55,34 +57,56 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Nota')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          TextField(
+    final p = context.palette;
+    final (statusColor, statusIcon) = switch (_status) {
+      SaveStatus.saved => (p.success, Icons.check_circle_outline),
+      SaveStatus.saving => (p.primary, Icons.sync),
+      SaveStatus.pending => (p.warning, Icons.cloud_off),
+    };
+    return ScreenScaffold(
+      title: 'Nota',
+      children: [
+        LabeledField(
+          label: 'Título',
+          child: TextField(
+            key: const Key('note-title'),
             controller: _title,
             onChanged: (_) => _changed(),
-            decoration: const InputDecoration(labelText: 'Título'),
           ),
-          const SizedBox(height: 12),
+        ),
+        const SizedBox(height: kButtonGap),
+        LabeledField(
+          label: 'Escreva aqui',
+          child: TextField(
+            key: const Key('note-body'),
+            controller: _body,
+            onChanged: (_) => _changed(),
+            minLines: 10,
+            maxLines: null,
+            autofocus: true,
+            keyboardType: TextInputType.multiline,
+            textAlignVertical: TextAlignVertical.top,
+          ),
+        ),
+        const SizedBox(height: kButtonGap),
+        if (widget.existing?.category != null) ...[
+          Text('Assunto: ${widget.existing!.category}', key: const Key('note-category')),
+          const SizedBox(height: 8),
+        ],
+        // Always visible: where the note stands, in icon and words.
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(statusIcon, color: statusColor, size: 28),
+          const SizedBox(width: 12),
           Expanded(
-            child: TextField(
-              controller: _body,
-              onChanged: (_) => _changed(),
-              maxLines: null,
-              expands: true,
-              autofocus: true,
-              textAlignVertical: TextAlignVertical.top,
-              decoration: const InputDecoration(labelText: 'Escreva aqui'),
+            child: Text(
+              statusLabel(_status),
+              key: const Key('save-status'),
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w600, color: statusColor, height: 1.4),
             ),
           ),
-          const SizedBox(height: 8),
-          if (widget.existing?.category != null)
-            Text('Assunto: ${widget.existing!.category}', key: const Key('note-category')),
-          Text(statusLabel(_status), key: const Key('save-status')),
         ]),
-      ),
+      ],
     );
   }
 }

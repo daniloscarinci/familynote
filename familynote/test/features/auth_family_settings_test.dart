@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/surface.dart';
 import 'package:familynote/app/providers.dart';
 import 'package:familynote/core/theme.dart';
 import 'package:familynote/data/auth_repository.dart';
@@ -16,6 +17,7 @@ Widget _wrap(Widget child) => MaterialApp(theme: buildTheme(), home: child);
 void main() {
   group('SignInScreen', () {
     testWidgets('email -> code -> signed in', (t) async {
+    tall(t);
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await t.tap(find.text('Prefiro receber um código por e-mail'));
@@ -32,6 +34,7 @@ void main() {
     });
 
     testWidgets('wrong code shows an error', (t) async {
+    tall(t);
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await t.tap(find.text('Prefiro receber um código por e-mail'));
@@ -54,6 +57,7 @@ void main() {
     }
 
     testWidgets('sign in success', (t) async {
+    tall(t);
       final auth = FakeAuthRepository()..accounts['ana@exemplo.com'] = 'segredo1';
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await fill(t, 'ana@exemplo.com', 'segredo1');
@@ -63,6 +67,7 @@ void main() {
     });
 
     testWidgets('wrong password shows plain message', (t) async {
+    tall(t);
       final auth = FakeAuthRepository()..accounts['ana@exemplo.com'] = 'segredo1';
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await fill(t, 'ana@exemplo.com', 'errada');
@@ -73,6 +78,7 @@ void main() {
     });
 
     testWidgets('create account success', (t) async {
+    tall(t);
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await t.tap(find.text('Criar minha conta'));
@@ -85,6 +91,7 @@ void main() {
     });
 
     testWidgets('create account needing confirmation', (t) async {
+    tall(t);
       final auth = FakeAuthRepository()..requireConfirmation = true;
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await t.tap(find.text('Criar minha conta'));
@@ -98,6 +105,7 @@ void main() {
     });
 
     testWidgets('short password is explained', (t) async {
+    tall(t);
       final auth = FakeAuthRepository();
       await t.pumpWidget(_wrap(SignInScreen(auth: auth)));
       await t.tap(find.text('Criar minha conta'));
@@ -109,6 +117,7 @@ void main() {
     });
 
     testWidgets('show password toggle reveals the text', (t) async {
+    tall(t);
       await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
       EditableText field() => t.widget<EditableText>(find.descendant(
           of: find.byKey(const Key('password')), matching: find.byType(EditableText)));
@@ -119,6 +128,7 @@ void main() {
     });
 
     testWidgets('switching to the code flow works', (t) async {
+    tall(t);
       await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
       await t.tap(find.text('Prefiro receber um código por e-mail'));
       await t.pumpAndSettle();
@@ -127,6 +137,7 @@ void main() {
     });
 
     testWidgets('targets are at least 56dp', (t) async {
+    tall(t);
       await t.pumpWidget(_wrap(SignInScreen(auth: FakeAuthRepository())));
       for (final k in ['primary', 'toggle-create', 'use-code', 'show-password']) {
         expect(t.getSize(find.byKey(Key(k))).height, greaterThanOrEqualTo(56), reason: k);
@@ -156,6 +167,7 @@ void main() {
         ));
 
     testWidgets('shows real names, with a fallback for unnamed members', (t) async {
+    tall(t);
       await t.pumpWidget(screen(repoWith(Role.admin), []));
       await t.pumpAndSettle();
       expect(find.text('Maria'), findsOneWidget);
@@ -164,6 +176,7 @@ void main() {
     });
 
     testWidgets('admin: invite is ready on open, no extra tap', (t) async {
+    tall(t);
       final opened = <Uri>[];
       final repo = repoWith(Role.admin);
       await t.pumpWidget(screen(repo, opened));
@@ -184,6 +197,7 @@ void main() {
     });
 
     testWidgets('Convidar alguem makes a new link', (t) async {
+    tall(t);
       final repo = repoWith(Role.admin);
       await t.pumpWidget(screen(repo, []));
       await t.pumpAndSettle();
@@ -196,6 +210,7 @@ void main() {
     });
 
     testWidgets('members load error shows plain message and retry works', (t) async {
+    tall(t);
       final repo = repoWith(Role.admin)..membersError = Exception('boom');
       await t.pumpWidget(screen(repo, []));
       await t.pumpAndSettle();
@@ -210,6 +225,7 @@ void main() {
     });
 
     testWidgets('copy puts the link on the clipboard', (t) async {
+    tall(t);
       String? copied;
       t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
         if (call.method == 'Clipboard.setData') {
@@ -228,6 +244,7 @@ void main() {
     });
 
     testWidgets('non-admin has no invite button', (t) async {
+    tall(t);
       await t.pumpWidget(screen(repoWith(Role.adult), []));
       await t.pumpAndSettle();
       expect(find.text('Convidar alguém'), findsNothing);
@@ -235,6 +252,7 @@ void main() {
   });
 
   testWidgets('SettingsScreen changes text size and signs out', (t) async {
+    tall(t);
     var out = false;
     final c = ProviderContainer();
     addTearDown(c.dispose);
@@ -245,11 +263,23 @@ void main() {
     expect(c.read(textScaleProvider), 1.0);
     await t.tap(find.text('Grande'));
     await t.pumpAndSettle();
-    expect(c.read(textScaleProvider), 1.25);
+    expect(c.read(textScaleProvider), 1.3);
     await t.tap(find.text('Muito grande'));
     await t.pumpAndSettle();
-    expect(c.read(textScaleProvider), 1.5);
+    expect(c.read(textScaleProvider), 1.6);
+    await t.tap(find.text('Enorme'));
+    await t.pumpAndSettle();
+    expect(c.read(textScaleProvider), 2.0);
+    // Signing out asks first; "Ficar" changes nothing.
     await t.tap(find.text('Sair'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Ficar'));
+    await t.pumpAndSettle();
+    expect(out, isFalse);
+    await t.tap(find.text('Sair'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Sim, sair'));
+    await t.pumpAndSettle();
     expect(out, isTrue);
   });
 }

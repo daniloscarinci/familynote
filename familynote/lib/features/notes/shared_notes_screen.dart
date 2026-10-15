@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/messages.dart';
+import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../../domain/models.dart';
 import '../../domain/repositories.dart';
 
@@ -13,6 +15,11 @@ class SharedNotesScreen extends StatefulWidget {
   State<SharedNotesScreen> createState() => _SharedNotesScreenState();
 }
 
+String _snippet(String body) {
+  final flat = body.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return flat.length <= 80 ? flat : '${flat.substring(0, 80)}...';
+}
+
 class _SharedNotesScreenState extends State<SharedNotesScreen> {
   late Future<List<Note>> _future = _load();
 
@@ -24,56 +31,49 @@ class _SharedNotesScreenState extends State<SharedNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('O que a família escreveu')),
-      body: FutureBuilder<List<Note>>(
-        future: _future,
-        builder: (c, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(friendlyMessage(snap.error!)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => setState(() => _future = _load()),
-                    child: const Text('Tentar de novo'),
-                  ),
-                ]),
-              ),
-            );
-          }
-          final items = snap.data!;
-          if (items.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Ainda não há notas compartilhadas com a família.'),
-              ),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const Divider(),
-            itemBuilder: (_, i) => ListTile(
-              minVerticalPadding: 16,
-              title: Text(items[i].title.isEmpty ? '(sem título)' : items[i].title),
-              subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (items[i].category != null)
-                  Text(items[i].category!, key: const Key('note-category')),
-                if (items[i].body.isNotEmpty)
-                  Text(items[i].body, maxLines: 2, overflow: TextOverflow.ellipsis),
-              ]),
-              onTap: () => widget.onOpen?.call(items[i]),
-            ),
-          );
-        },
-      ),
+    final body = Theme.of(context).textTheme.bodyLarge;
+    return ScreenScaffold(
+      title: 'O que a família escreveu',
+      children: [
+        FutureBuilder<List<Note>>(
+          future: _future,
+          builder: (c, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError) {
+              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                InlineMessage(friendlyMessage(snap.error!), kind: MessageKind.error),
+                const SizedBox(height: kButtonGap),
+                BigButton(
+                  onPressed: () => setState(() => _future = _load()),
+                  label: 'Tentar de novo',
+                ),
+              ]);
+            }
+            final items = snap.data!;
+            if (items.isEmpty) {
+              return Text('Ainda não há notas compartilhadas com a família.', style: body);
+            }
+            return Column(children: [
+              for (final n in items) ...[
+                BigButton(
+                  label: n.title.isEmpty ? '(sem título)' : n.title,
+                  caption: [
+                    if (n.category != null) n.category!,
+                    if (n.body.isNotEmpty) _snippet(n.body),
+                  ].join(' · '),
+                  outline: true,
+                  height: 72,
+                  alignStart: true,
+                  onPressed: () => widget.onOpen?.call(n),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ]);
+          },
+        ),
+      ],
     );
   }
 }
